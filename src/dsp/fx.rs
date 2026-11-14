@@ -247,22 +247,80 @@ impl Shape {
     }
 }
 
-/// Waveshaping distortion with internal oversampling so harmonics do not alias.
+fn ln_cosh(x: f64) -> f64 {
+    let a = x.abs();
+    a + (-2.0 * a).exp().ln_1p() - std::f64::consts::LN_2
+}
+
+impl Shape {
+    /// Antiderivative of the shaping function, used for antialiasing.
+    #[inline(always)]
+    fn integral(&self, x: f64) -> f64 {
+        match self {
+            Shape::Tanh => ln_cosh(x),
+            Shape::Soft => x.abs() - x.abs().ln_1p(),
+            Shape::Hard => {
+                if x.abs() <= 1.0 {
+                    0.5 * x * x
+                } else {
+                    x.abs() - 0.5
+                }
+            }
+            Shape::Fold => {
+                let t = (x + 1.0).rem_euclid(4.0);
+                if t < 2.0 {
+                    0.5 * t * t - t
+                } else {
+                    -0.5 * t * t + 3.0 * t - 4.0
+                }
+            }
+            Shape::Tube => {
+                if x >= 0.0 {
+                    ln_cosh(x)
+                } else {
+                    ln_cosh(0.7 * x) * 0.9 / 0.49
+                }
+            }
+        }
+    }
+
+    /// Antialiased shaping of the step from `prev` to `x` (first-order
+    /// antiderivative method): the average of the shaper over the interval
+    /// between two samples instead of its value at one point.
+    #[inline(always)]
+    fn apply_aa(&self, x: f64, prev: f64) -> f64 {
+        let d = x - prev;
+        if d.abs() < 1e-5 {
+            self.apply(0.5 * (x + prev))
+        } else {
+            (self.integral(x) - self.integral(prev)) / d
+        }
+    }
+}
+
+/// Waveshaping distortion. Harmonics are kept from aliasing by internal
+/// oversampling combined with antiderivative antialiasing.
 pub fn distort(input: &Sig, shape: Shape, drive_db: &P, mix: f64, oversample: usize, sr: f64) -> Sig {
     let os = oversample.max(1);
     input.map_channels(|_, x| {
         let up = interpolate(x, os);
+        let mut prev = 0.0;
+        let mut shape_step = |v: f64| {
+            let y = shape.apply_aa(v, prev);
+            prev = v;
+            y
+        };
         let shaped: Vec<f64> = match drive_db {
             P::C(d) => {
                 let g = db_to_lin(*d);
-                up.iter().map(|&v| shape.apply(v * g)).collect()
+                up.iter().map(|&v| shape_step(v * g)).collect()
             }
             P::B(_) => up
                 .iter()
                 .enumerate()
                 .map(|(i, &v)| {
                     let g = db_to_lin(drive_db.at((i / os).min(x.len().saturating_sub(1))));
-                    shape.apply(v * g)
+                    shape_step(v * g)
                 })
                 .collect(),
         };
@@ -405,6 +463,20 @@ mod tests {
         let out = delay(&Sig::mono(x), &DelayArgs { time: &P::C(0.25), feedback: &P::C(0.0), mix: &P::C(1.0), damp_hz: 20000.0, pingpong: false }, sr);
         let (imax, _) = out.l.iter().enumerate().fold((0, 0.0), |(bi, bv), (i, v)| if v.abs() > bv { (i, v.abs()) } else { (bi, bv) });
         assert!((imax as i64 - 12000).abs() <= 2, "echo at {imax}");
+    }
+
+    #[test]
+    fn antialiased_shaper_matches_plain_shaper_for_slow_signals() {
+        for sh in [Shape::Tanh, Shape::Soft, Shape::Hard, Shape::Fold, Shape::Tube] {
+            let mut prev = -3.0f64;
+            for i in 1..6000 {
+                let x = -3.0 + i as f64 * 0.001;
+                let aa = sh.apply_aa(x, prev);
+                let plain = sh.apply(0.5 * (x + prev));
+                assert!((aa - plain).abs() < 2e-3, "{sh:?} at {x}: {aa} vs {plain}");
+                prev = x;
+            }
+        }
     }
 
     #[test]

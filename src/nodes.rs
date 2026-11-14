@@ -113,7 +113,7 @@ fn amp() -> ParamSpec {
     par("amp", "1", -100.0, 100.0, "output level multiplier; use an envelope here to shape loudness, e.g. amp: env")
 }
 fn freq() -> ParamSpec {
-    par("freq", "freq", 0.0, 96000.0, "frequency in Hz; defaults to the note frequency `freq`")
+    par("freq", "freq", 0.0, 20000.0, "frequency in Hz; defaults to the note frequency `freq`")
 }
 
 const F: f64 = 1e9;
@@ -485,6 +485,7 @@ pub fn eval_node(a: &Args) -> Result<Sig> {
                 detune_cents: a.num("detune"),
                 spread: a.num("spread"),
                 phase: Some(a.num("phase")),
+                max_freq: c.nyquist(),
                 sr,
                 n,
                 seed: a.seed(),
@@ -677,8 +678,9 @@ pub fn eval_node(a: &Args) -> Result<Sig> {
         "dcblock" => a.sig("in").map_channels(|_, x| dc_block(x, sr)),
         "distort" => {
             let shape = Shape::parse(a.str("shape")).unwrap_or(Shape::Tanh);
-            // oversample so that the total rate is at least 4x the output rate
-            let os = (4usize.div_ceil(c.os)).max(1);
+            // extra oversampling on top of the engine's: 4x in total for draft
+            // and standard quality, 8x for high
+            let os = if c.os == 1 { 4 } else { 2 };
             let mut s = distort(&a.sig("in"), shape, &a.p("drive_db"), a.num("mix"), os, sr);
             s.scale(db_to_lin(a.num("level_db")));
             s

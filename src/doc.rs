@@ -31,7 +31,7 @@ pub fn parse_text(text: &str, origin: &str) -> Result<Value> {
         serde_yaml_ng::from_str(text).map_err(|e| Error::invalid(format!("{origin}: invalid YAML: {e}")).hint("check indentation and quote strings containing ':' or '#'; expressions such as \"freq * 2\" must be quoted"))?
     };
     if !v.is_object() {
-        return Err(Error::invalid(format!("{origin}: the document must be a mapping at the top level")));
+        return Err(Error::invalid(format!("{origin}: the document must be a mapping at the top level")).hint("a document is a YAML or JSON mapping with keys such as `nodes` (patch) or `instruments` (score); see `aas library show examples/minimal_patch`"));
     }
     Ok(v)
 }

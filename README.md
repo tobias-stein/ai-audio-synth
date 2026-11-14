@@ -126,10 +126,12 @@ sections:
 
 ## Quality and limits
 
-- The engine is built to professional technical standards (no aliasing from
-  oscillators or distortion, true-peak-safe output, loudness-normalized
-  masters) and every built-in asset is checked by the test suite against its
-  lint profile.
+- The engine follows professional practice: band-limited oscillators,
+  oversampled and antialiased distortion, true-peak-safe output and
+  loudness-normalized masters. Measured audible aliasing of a saw at the top of
+  the keyboard (C8) is about -53 dB at `--quality standard` and -72 dB at
+  `--quality high`; use `high` for final assets. Every built-in asset is
+  checked by the test suite against its lint profile.
 - Measurements verify technical correctness and catch gross mismatches. They
   do not judge taste. **Have a person audition assets before shipping them.**
 - Synthesis suits UI, sci-fi, magic, impacts, whooshes, ambiences, drones and

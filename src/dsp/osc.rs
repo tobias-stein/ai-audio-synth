@@ -97,6 +97,8 @@ pub struct OscArgs<'a> {
     pub spread: f64,
     /// Start phase in cycles; `None` picks a seeded random phase per voice.
     pub phase: Option<f64>,
+    /// Frequencies above this are silenced instead of aliasing.
+    pub max_freq: f64,
     pub sr: f64,
     pub n: usize,
     pub seed: u64,
@@ -127,7 +129,8 @@ pub fn osc(a: &OscArgs) -> Sig {
         };
         let mut last_pm = a.pm.map(|p| p.at(0) / TAU).unwrap_or(0.0);
         for i in 0..a.n {
-            let inc = (a.freq.at(i) * ratio / a.sr).clamp(-0.5, 0.5);
+            let f = a.freq.at(i) * ratio;
+            let inc = (f / a.sr).clamp(-0.5, 0.5);
             let (t, dt) = match a.pm {
                 Some(pm) => {
                     let m = pm.at(i) / TAU;
@@ -137,7 +140,7 @@ pub fn osc(a: &OscArgs) -> Sig {
                 }
                 None => (ph, inc.abs().max(1e-9)),
             };
-            let s = wave_sample(a.wave, t, dt, a.pw.at(i));
+            let s = if f.abs() <= a.max_freq { wave_sample(a.wave, t, dt, a.pw.at(i)) } else { 0.0 };
             l[i] += s * gl;
             if stereo {
                 r[i] += s * gr;
@@ -338,7 +341,7 @@ mod tests {
         let f = P::C(440.0);
         let pw = P::C(0.3);
         for wave in [Wave::Sine, Wave::Saw, Wave::Square, Wave::Pulse, Wave::Triangle] {
-            let s = osc(&OscArgs { wave, freq: &f, pw: &pw, pm: None, unison: 1, detune_cents: 0.0, spread: 0.0, phase: Some(0.0), sr: 96000.0, n: 96000, seed: 1 });
+            let s = osc(&OscArgs { wave, freq: &f, pw: &pw, pm: None, unison: 1, detune_cents: 0.0, spread: 0.0, phase: Some(0.0), max_freq: 21600.0, sr: 96000.0, n: 96000, seed: 1 });
             let peak = s.peak();
             assert!(peak <= 1.6 && peak > 0.9, "{wave:?} peak {peak}");
             let mean = s.l.iter().sum::<f64>() / s.l.len() as f64;
@@ -346,11 +349,54 @@ mod tests {
         }
     }
 
+    /// Energy that is neither a harmonic of the note nor above 20 kHz, relative
+    /// to the harmonics: this is what aliasing sounds like.
+    fn audible_alias_db(x: &[f64], f0: f64, sr: f64) -> f64 {
+        use rustfft::{num_complex::Complex, FftPlanner};
+        let n = 32768;
+        let mut buf: Vec<Complex<f64>> = (0..n)
+            .map(|i| {
+                let w = 0.42 - 0.5 * (TAU * i as f64 / n as f64).cos() + 0.08 * (2.0 * TAU * i as f64 / n as f64).cos();
+                Complex::new(x[4096 + i] * w, 0.0)
+            })
+            .collect();
+        FftPlanner::new().plan_fft_forward(n).process(&mut buf);
+        let (mut harm, mut other) = (0.0, 0.0);
+        for (k, c) in buf.iter().enumerate().take(n / 2) {
+            let f = k as f64 * sr / n as f64;
+            if !(30.0..=20000.0).contains(&f) {
+                continue;
+            }
+            let nearest = (f / f0).round() * f0;
+            if (f - nearest).abs() < 15.0 {
+                harm += c.norm_sqr();
+            } else {
+                other += c.norm_sqr();
+            }
+        }
+        10.0 * (other / harm).log10()
+    }
+
+    #[test]
+    fn aliasing_stays_low_at_the_top_of_the_keyboard() {
+        // C8 saw and square, the hardest cases for a band-limited oscillator
+        let f0 = 4186.0;
+        for (os, limit) in [(2usize, -48.0), (4, -65.0)] {
+            let sr = 48000.0 * os as f64;
+            for wave in [Wave::Saw, Wave::Square] {
+                let s = osc(&OscArgs { wave, freq: &P::C(f0), pw: &P::C(0.5), pm: None, unison: 1, detune_cents: 0.0, spread: 0.0, phase: Some(0.0), max_freq: 21600.0, sr, n: 48000 * os, seed: 1 });
+                let down = crate::dsp::resample::decimate(&s.l, os);
+                let a = audible_alias_db(&down, f0, 48000.0);
+                assert!(a < limit, "{wave:?} at {os}x oversampling: audible aliasing {a:.1} dB");
+            }
+        }
+    }
+
     #[test]
     fn unison_goes_stereo() {
         let f = P::C(220.0);
         let pw = P::C(0.5);
-        let s = osc(&OscArgs { wave: Wave::Saw, freq: &f, pw: &pw, pm: None, unison: 7, detune_cents: 30.0, spread: 0.8, phase: None, sr: 96000.0, n: 9600, seed: 3 });
+        let s = osc(&OscArgs { wave: Wave::Saw, freq: &f, pw: &pw, pm: None, unison: 7, detune_cents: 30.0, spread: 0.8, phase: None, max_freq: 21600.0, sr: 96000.0, n: 9600, seed: 3 });
         assert!(s.is_stereo());
     }
 

@@ -167,6 +167,15 @@ pub fn parse_fx_chain(v: &Value) -> Result<Option<Patch>> {
     let mut nodes = Map::new();
     for (i, item) in arr.iter().enumerate() {
         let mut o = as_obj(item, "an effect").map_err(|e| e.at(i.to_string()))?.clone();
+        if let Some(ty) = o.get("type").and_then(|t| t.as_str()) {
+            if let Some(spec) = crate::nodes::spec_for(ty) {
+                if ty != "mix" && !spec.params.iter().any(|p| p.name == "in") {
+                    return Err(Error::invalid(format!("'{ty}' is a {} node, not an effect, so it cannot be a step in an fx chain", spec.category))
+                        .at(i.to_string())
+                        .hint("fx chains take nodes that process an input: filters, shapers, dynamics and space effects. For values that change over time use an expression of t, e.g. {type: lowpass, cutoff: \"400 + 300 * t\"}"));
+                }
+            }
+        }
         if !o.contains_key("in") && o.get("type").and_then(|t| t.as_str()) != Some("mix") {
             o.insert("in".into(), json!(if i == 0 { "input".to_string() } else { format!("fx{}", i - 1) }));
         }
@@ -1164,5 +1173,66 @@ impl Score {
             "master_lufs_target": self.master.lufs,
             "master_gain_note": format!("master gain is chosen to hit the LUFS target, then a true-peak limiter holds {} dBFS", lin_to_db(db_to_lin(self.master.ceiling_db)).round()),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn score(yaml: &str) -> Result<Score> {
+        let v = doc::parse_text(yaml, "test")?;
+        Score::from_value(&v, Path::new("."))
+    }
+
+    const BASE: &str = "tempo: 120\ninstruments: {lead: {patch: builtin:instruments/lead_square}, kit: {kit: {kick: builtin:drums/kick}}}\n";
+
+    #[test]
+    fn hits_land_on_the_grid_and_patterns_repeat() {
+        let s = score(&format!("{BASE}patterns: {{p: {{notes: \"C4:1 E4:1\"}}}}\nsections: {{m: {{bars: 1, tracks: {{lead: p}}}}}}\narrangement: [m, m]")).unwrap();
+        let hits = collect_hits(&s, &s.instruments[0], &s.arrangement, 1);
+        let times: Vec<f64> = hits.iter().map(|h| h.at).collect();
+        assert_eq!(times, vec![0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5]);
+        assert_eq!(hits.iter().map(|h| h.midi).collect::<Vec<_>>(), vec![60, 64, 60, 64, 60, 64, 60, 64]);
+        // the unused drum kit is pointed out, and nothing else
+        assert_eq!(s.warnings.len(), 1, "{:?}", s.warnings);
+        assert!(s.warnings[0].contains("'kit' is never played"));
+    }
+
+    #[test]
+    fn swing_delays_off_beats_only() {
+        let s = score(&format!("{BASE}swing: 1\npatterns: {{p: {{step: 0.5, notes: \"C4 C4 C4 C4\"}}}}\nsections: {{m: {{bars: 0.5, tracks: {{lead: p}}}}}}")).unwrap();
+        let hits = collect_hits(&s, &s.instruments[0], &s.arrangement, 1);
+        let beats: Vec<f64> = hits.iter().map(|h| h.at / s.beat_seconds()).collect();
+        assert!((beats[0] - 0.0).abs() < 1e-9 && (beats[2] - 1.0).abs() < 1e-9);
+        // full swing puts the off-beat two thirds of the way through the beat
+        assert!((beats[1] - 2.0 / 3.0).abs() < 1e-9, "{beats:?}");
+    }
+
+    #[test]
+    fn mistakes_are_reported_with_paths() {
+        let e = score(&format!("{BASE}patterns: {{p: {{drums: {{snare: \"x...\"}}}}}}\nsections: {{m: {{bars: 1, tracks: {{kit: p}}}}}}")).err().unwrap();
+        assert!(e.message.contains("snare") && e.hint.unwrap().contains("kick"), "{}", e.message);
+        let e = score(&format!("{BASE}patterns: {{p: {{notes: \"C4:4\"}}}}\nsections: {{m: {{bars: 1, tracks: {{kit: p}}}}}}")).err().unwrap();
+        assert!(e.message.contains("drum kit"), "{}", e.message);
+        let e = score(&format!("{BASE}patterns: {{p: {{notes: \"C4:4\"}}}}\nsections: {{m: {{bars: 1, tracks: {{lead: q}}}}}}")).err().unwrap();
+        assert_eq!(e.path.as_deref(), Some("sections.m.tracks.lead"));
+        let e = score("instruments: {a: {patch: builtin:instruments/lead_square, fx: [{type: lfo}]}}\nsections: {m: {bars: 1}}").err().unwrap();
+        assert!(e.message.contains("not an effect"), "{}", e.message);
+        let e = score("instruments: {a: {patch: builtin:instruments/lead_square, params: {cutof: 3}}}\nsections: {m: {bars: 1}}").err().unwrap();
+        assert_eq!(e.path.as_deref(), Some("instruments.a.params.cutof"));
+    }
+
+    #[test]
+    fn uneven_pattern_lengths_warn() {
+        let s = score(&format!("{BASE}patterns: {{p: {{notes: \"C4:3\"}}}}\nsections: {{m: {{bars: 1, tracks: {{lead: p}}}}}}")).unwrap();
+        assert!(s.warnings.iter().any(|w| w.contains("does not divide")), "{:?}", s.warnings);
+    }
+
+    #[test]
+    fn tail_wraps_into_the_loop() {
+        let s = Sig::mono(vec![1.0, 2.0, 3.0, 4.0, 10.0, 20.0]);
+        let w = wrap_tail(&s, 4);
+        assert_eq!(w.l, vec![11.0, 22.0, 3.0, 4.0]);
     }
 }

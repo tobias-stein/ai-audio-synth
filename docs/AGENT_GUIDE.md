@@ -43,7 +43,8 @@ and gross mismatches; they do not judge taste.
 
 Useful render flags: `--set name=value` (patch parameters), `--seed N`,
 `--variations N` (round-robin variants), `--loop` (seamless loop),
-`--stems` and `--sections` (scores), `--quality draft|standard|high`,
+`--stems` and `--sections` (scores), `--quality draft|standard|high`
+(iterate in `draft` or `standard`; render final assets in `high`),
 `--probe` (level of every node: find the layer that is too loud or silent),
 `--raw` (no normalization), `--profile name`, `--sr`, `--bits 16|24|32f`.
 
@@ -150,6 +151,10 @@ arrangement: [main, main]
   `sends` to buses, and `duck` (sidechain: `duck: {source: drums.kick,
   amount_db: 4}`). `master: {lufs: -16}` sets the final loudness; a true-peak
   limiter holds -1 dBFS.
+- **Change over time**: effect parameters accept expressions of `t` (seconds
+  from the start of the track), e.g. a filter opening over the first 8
+  seconds: `fx: [{type: lowpass, cutoff: "300 + 1200 * min(t, 8)"}]`.
+  Per-section dynamics: `tracks: {pad: {pattern: chords, gain_db: -6}}`.
 - **Deliverables**: `--loop` for a seamless loop (the tail wraps into the
   start), `--stems` for one file per instrument, `--sections` for one file
   per section with its tail, for adaptive music.
