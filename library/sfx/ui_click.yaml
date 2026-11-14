@@ -1,0 +1,11 @@
+description: Short, clean interface click.
+category: ui
+profile: ui
+duration: 0.12
+params:
+  pitch: {default: 1800, min: 400, max: 6000, doc: "pitch of the click in Hz"}
+nodes:
+  env: {type: env, points: [[0, 1], [0.05, 0]], curve: exp}
+  tone: {type: osc, wave: sine, freq: "pitch * (1 + 0.5 * env)", amp: env}
+  tick: {type: noise, color: white, amp: "env * env * 0.3"}
+  out: {type: highpass, in: "tone + tick", cutoff: 400}
