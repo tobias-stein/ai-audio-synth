@@ -20,4 +20,4 @@ nodes:
   rumble: {type: lowpass, in: rumble_src, cutoff: 300}
   left: {type: pan, in: "drops_l + big * 0.5", pos: -0.7}
   right: {type: pan, in: drops_r, pos: 0.7}
-  out: {type: expr, expr: "hiss * (0.08 + 0.2 * intensity) + (left + right) * 0.6 + rumble * 0.5 * intensity"}
+  out: {type: expr, expr: "hiss * (0.15 + 0.3 * intensity) + (left + right) * 0.6 + rumble * 0.12 * intensity"}

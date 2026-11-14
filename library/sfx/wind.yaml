@@ -16,4 +16,4 @@ nodes:
   low: {type: lowpass, in: low_src, cutoff: "150 + 150 * gust2"}
   wh_src: {type: noise, stereo: true}
   wh: {type: bandpass, in: wh_src, cutoff: "1500 + 900 * gust2 + 500 * gust", q: 14}
-  out: {type: expr, expr: "body * (0.35 + 0.65 * gust) * 3 + low * (0.5 + strength) * (0.5 + 0.5 * gust2) + wh * whistle * gust * gust * 0.5"}
+  out: {type: expr, expr: "body * (0.35 + 0.65 * gust) * 3 + low * (0.2 + 0.5 * strength) * (0.5 + 0.5 * gust2) + wh * whistle * gust * gust * 0.5"}

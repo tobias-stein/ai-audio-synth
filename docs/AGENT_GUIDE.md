@@ -175,7 +175,8 @@ Composition guidance that the measurements cannot give you:
 |---|---|---|
 | `lufs` | Perceived loudness | Match assets of one category to each other |
 | `true_peak_db` | Highest level incl. between samples | Must stay at or below -1 |
-| `centroid_hz` | Brightness | <800 dark, 800-2500 balanced, >2500 bright |
+| `brightness_hz` | Where the energy sits on a log scale; matches what "dark" and "bright" mean to a listener | <400 dark, 400-1500 balanced, >1500 bright |
+| `centroid_hz` | Classic spectral centroid; sensitive to faint high noise | Compare two versions of the same sound |
 | `attack_ms` | Time to reach full level | Impacts and UI need <10-20 ms |
 | `decay_s` | Time to fall 20 dB after the peak | Length of the tail |
 | `bands` | Share of energy per frequency band | Find missing or excessive bass/treble |

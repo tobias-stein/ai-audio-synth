@@ -106,6 +106,9 @@ pub fn band_shares(power: &[f64], bin_hz: f64) -> Vec<f64> {
 
 pub struct SpectralShape {
     pub centroid_hz: f64,
+    /// Energy-weighted average frequency on a logarithmic scale. Tracks
+    /// perceived brightness better than the centroid for mixed material.
+    pub brightness_hz: f64,
     pub rolloff_hz: f64,
     pub flatness: f64,
 }
@@ -123,6 +126,15 @@ pub fn spectral_shape(power: &[f64], bin_hz: f64) -> SpectralShape {
         total += p;
     }
     let centroid_hz = if den > 0.0 { num / den } else { 0.0 };
+    let (mut lnum, mut lden) = (0.0, 0.0);
+    for (i, p) in power.iter().enumerate() {
+        let f = i as f64 * bin_hz;
+        if (20.0..=20000.0).contains(&f) {
+            lnum += f.ln() * p;
+            lden += p;
+        }
+    }
+    let brightness_hz = if lden > 0.0 { (lnum / lden).exp() } else { 0.0 };
     let mut acc = 0.0;
     let mut rolloff_hz = 0.0;
     for (i, p) in power.iter().enumerate() {
@@ -148,7 +160,7 @@ pub fn spectral_shape(power: &[f64], bin_hz: f64) -> SpectralShape {
             flatness = (log_mean.exp() / mean).clamp(0.0, 1.0);
         }
     }
-    SpectralShape { centroid_hz, rolloff_hz, flatness }
+    SpectralShape { centroid_hz, brightness_hz, rolloff_hz, flatness }
 }
 
 #[derive(Clone, Debug)]

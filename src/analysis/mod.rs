@@ -72,6 +72,7 @@ pub struct Analysis {
     pub end_level_db: f64,
     pub envelope_db: Vec<f64>,
     pub centroid_hz: f64,
+    pub brightness_hz: f64,
     pub rolloff_hz: f64,
     pub flatness: f64,
     pub band_shares: Vec<f64>,
@@ -306,6 +307,7 @@ pub fn analyze(sig: &Sig, sr: u32, opts: &AnalyzeOpts) -> Analysis {
         end_level_db,
         envelope_db,
         centroid_hz: shape.centroid_hz,
+        brightness_hz: shape.brightness_hz,
         rolloff_hz: shape.rolloff_hz,
         flatness: shape.flatness,
         band_shares: shares,
@@ -399,13 +401,13 @@ fn describe(a: &Analysis, opts: &AnalyzeOpts) -> String {
     } else {
         "Long"
     };
-    let bright = if a.centroid_hz < 250.0 {
+    let bright = if a.brightness_hz < 150.0 {
         "very dark, boomy"
-    } else if a.centroid_hz < 800.0 {
+    } else if a.brightness_hz < 400.0 {
         "dark, warm"
-    } else if a.centroid_hz < 2500.0 {
+    } else if a.brightness_hz < 1500.0 {
         "balanced"
-    } else if a.centroid_hz < 6000.0 {
+    } else if a.brightness_hz < 4500.0 {
         "bright"
     } else {
         "very bright, thin"
@@ -438,7 +440,11 @@ fn describe(a: &Analysis, opts: &AnalyzeOpts) -> String {
     } else {
         format!("a long tail ({:.1} s to fall 20 dB)", a.decay_s)
     };
-    parts.push(format!("with {attack} and {tail}"));
+    if opts.is_loop {
+        parts.push("that loops, with a sustained level throughout".to_string());
+    } else {
+        parts.push(format!("with {attack} and {tail}"));
+    }
     if let Some(p) = &a.pitch {
         if p.tonal_fraction > 0.25 {
             let ratio = p.end_hz / p.start_hz;
@@ -481,7 +487,7 @@ fn describe(a: &Analysis, opts: &AnalyzeOpts) -> String {
         "dense, compressed dynamics"
     };
     parts.push(format!("{} LUFS with {dynamics}", round_to(a.lufs, 1)));
-    let mut s = parts.join(". ").replace(" sound. with", " sound with");
+    let mut s = parts.join(". ").replace(" sound. with", " sound with").replace(" sound. that loops", " sound that loops");
     s.push('.');
     s
 }
@@ -509,6 +515,7 @@ impl Analysis {
         m.insert("true_peak_db".into(), r(self.true_peak_db, 1));
         m.insert("lufs".into(), r(self.lufs, 1));
         m.insert("centroid_hz".into(), r(self.centroid_hz, 0));
+        m.insert("brightness_hz".into(), r(self.brightness_hz, 0));
         m.insert("attack_ms".into(), r(self.attack_ms, 1));
         m.insert("decay_s".into(), r(self.decay_s, 3));
         if let Some(p) = &self.pitch {
@@ -566,6 +573,7 @@ impl Analysis {
             },
             "spectrum": {
                 "centroid_hz": r(self.centroid_hz, 0),
+                "brightness_hz": r(self.brightness_hz, 0),
                 "rolloff_85_hz": r(self.rolloff_hz, 0),
                 "flatness": r(self.flatness, 3),
                 "bands": bands,
