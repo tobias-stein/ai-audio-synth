@@ -8,8 +8,8 @@ key: C minor
 instruments:
   drums:
     kit: {kick: builtin:drums/kick, snare: builtin:drums/snare, hat: builtin:drums/hat_closed}
-  bass: {patch: builtin:instruments/bass_synth}
-  pad: {patch: builtin:instruments/pad_warm, sends: {hall: -8}}
+  bass: {patch: builtin:instruments/bass_synth, gain_db: -3}
+  pad: {patch: builtin:instruments/pad_warm, gain_db: 2, sends: {hall: -6}}
 buses:
   hall: {fx: [{type: reverb, decay: 2.5, mix: 1}]}
 patterns:

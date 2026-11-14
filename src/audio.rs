@@ -1,6 +1,6 @@
 //! The audio buffer type shared by the engine, the mixer and the analyzers.
 
-use crate::util::{db_to_lin, lin_to_db};
+use crate::util::db_to_lin;
 
 /// A mono or stereo block of 64-bit float samples.
 #[derive(Clone, Debug, Default)]
@@ -86,9 +86,6 @@ impl Sig {
             }
         }
         p
-    }
-    pub fn peak_db(&self) -> f64 {
-        lin_to_db(self.peak())
     }
     pub fn resize(&mut self, n: usize) {
         self.l.resize(n, 0.0);

@@ -4,7 +4,7 @@ tail: 2.0
 duration: 3.29
 gate: 1.14
 params:
-  cutoff: {default: 1600, min: 200, max: 10000, doc: "filter cutoff in Hz"}
+  cutoff: {default: 2400, min: 200, max: 10000, doc: "filter cutoff in Hz"}
   attack: {default: 0.6, min: 0.01, max: 5, doc: "fade-in time in seconds"}
 nodes:
   env: {type: adsr, attack: attack, decay: 1, sustain: 0.8, release: 1.6}

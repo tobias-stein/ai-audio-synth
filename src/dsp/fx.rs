@@ -17,9 +17,6 @@ impl DelayLine {
     pub fn new(max_samples: usize) -> Self {
         DelayLine { buf: vec![0.0; max_samples + 8], w: 0 }
     }
-    pub fn max_delay(&self) -> f64 {
-        (self.buf.len() - 4) as f64
-    }
     #[inline(always)]
     pub fn push(&mut self, x: f64) {
         self.buf[self.w] = x;

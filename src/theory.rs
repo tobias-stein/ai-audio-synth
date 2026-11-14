@@ -126,7 +126,6 @@ pub struct Chord {
     pub root: i32,
     pub intervals: Vec<i32>,
     pub bass: Option<i32>,
-    pub symbol: String,
 }
 
 impl Chord {
@@ -140,7 +139,7 @@ impl Chord {
         let (root, used) = parse_pitch_class(main).ok_or_else(|| bad("it does not start with a note name"))?;
         let quality = &main[used..];
         let intervals = CHORDS.iter().find(|c| c.0 == quality).ok_or_else(|| bad(&format!("unknown quality '{quality}'")))?.1.to_vec();
-        Ok(Chord { root: root.rem_euclid(12), intervals, bass: bass.map(|b| b.rem_euclid(12)), symbol: sym.to_string() })
+        Ok(Chord { root: root.rem_euclid(12), intervals, bass: bass.map(|b| b.rem_euclid(12)) })
     }
 
     /// MIDI notes in close position with the root in `octave` (C4 = octave 4).

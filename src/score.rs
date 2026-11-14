@@ -1154,6 +1154,7 @@ impl Score {
             "tempo_bpm": self.tempo,
             "time_signature": self.time_signature,
             "key": self.key.as_ref().map(|k| k.name()),
+            "scale_lock": self.scale_lock,
             "bars": round_to(beats / self.beats_per_bar, 3),
             "duration_s": round_to(beats * self.beat_seconds(), 3),
             "instruments": self.instruments.iter().map(|i| i.name.clone()).collect::<Vec<_>>(),

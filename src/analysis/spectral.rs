@@ -27,7 +27,8 @@ pub fn stft(x: &[f64], size: usize, hop: usize, sr: f64) -> Stft {
     let mut planner = FftPlanner::<f64>::new();
     let fft = planner.plan_fft_forward(size);
     let win = hann(size);
-    let wnorm: f64 = win.iter().map(|w| w * w).sum::<f64>();
+    // scaled so that the bins of one frame sum to the mean square of the signal
+    let wnorm: f64 = win.iter().map(|w| w * w).sum::<f64>() * size as f64 / 2.0;
     let mut frames = Vec::new();
     let mut buf = vec![Complex::new(0.0, 0.0); size];
     let mut start = 0usize;
@@ -268,7 +269,7 @@ pub fn detect_rhythm(x: &[f64], sr: f64) -> Rhythm {
     let s = stft(x, size, hop, sr);
     let nf = s.frames.len();
     let mut flux = vec![0.0; nf];
-    let logmag = |p: f64| (1.0 + 100.0 * p.sqrt()).ln();
+    let logmag = |p: f64| (1.0 + 2200.0 * p.sqrt()).ln();
     for t in 1..nf {
         let mut acc = 0.0;
         for (a, b) in s.frames[t].iter().zip(&s.frames[t - 1]) {

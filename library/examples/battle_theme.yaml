@@ -8,9 +8,9 @@ tail: 5
 instruments:
   drums:
     kit:
-      kick: builtin:drums/kick
+      kick: {patch: builtin:drums/kick, gain_db: -3}
       snare: builtin:drums/snare
-      hat: {patch: builtin:drums/hat_closed, gain_db: -4}
+      hat: {patch: builtin:drums/hat_closed, gain_db: -2}
       crash: {patch: builtin:drums/crash, gain_db: -3}
     sends: {hall: -16}
   war:
@@ -18,12 +18,12 @@ instruments:
       low: {patch: builtin:drums/taiko, params: {pitch: 62}, pan: -0.2}
       high: {patch: builtin:drums/taiko, params: {pitch: 96, decay: 0.5}, pan: 0.25, gain_db: -3}
       boom: builtin:drums/sub_boom
-    gain_db: -1
-    sends: {hall: -8}
+    gain_db: -5
+    sends: {hall: -6}
   bass: {patch: builtin:instruments/bass_synth, params: {cutoff: 1100, drive: 12}, gain_db: -2, duck: {source: drums.kick, amount_db: 4, release_ms: 120}}
-  strings: {patch: builtin:instruments/pad_strings, params: {attack: 0.01, brightness: 0.7}, gain_db: -1, sends: {hall: -9}}
-  brass: {patch: builtin:instruments/brass_synth, params: {brightness: 0.75}, gain_db: 0, sends: {hall: -8}}
-  lead: {patch: builtin:instruments/lead_saw, gain_db: -4, sends: {hall: -8, echo: -12}}
+  strings: {patch: builtin:instruments/pad_strings, params: {attack: 0.01, brightness: 0.8}, gain_db: 2, sends: {hall: -6}}
+  brass: {patch: builtin:instruments/brass_synth, params: {brightness: 0.8}, gain_db: 3, sends: {hall: -6}}
+  lead: {patch: builtin:instruments/lead_saw, gain_db: -1, sends: {hall: -8, echo: -12}}
   choir: {patch: builtin:instruments/pad_choir, gain_db: -6, sends: {hall: -4}}
 buses:
   hall: {fx: [{type: reverb, decay: 2.8, size: 1.8, damping: 5000, predelay_ms: 20, mix: 1}]}

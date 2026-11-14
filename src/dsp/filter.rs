@@ -13,7 +13,6 @@ pub enum FilterMode {
     Peak,
     LowShelf,
     HighShelf,
-    Allpass,
 }
 
 /// Trapezoidal state-variable filter. Stable under fast cutoff modulation.
@@ -60,11 +59,6 @@ impl Svf {
             FilterMode::Notch => {
                 self.m0 = 1.0;
                 self.m1 = -k;
-                self.m2 = 0.0;
-            }
-            FilterMode::Allpass => {
-                self.m0 = 1.0;
-                self.m1 = -2.0 * k;
                 self.m2 = 0.0;
             }
             FilterMode::Peak => {
@@ -153,48 +147,12 @@ impl Biquad {
     pub fn from_coeffs(b0: f64, b1: f64, b2: f64, a0: f64, a1: f64, a2: f64) -> Self {
         Biquad { b0: b0 / a0, b1: b1 / a0, b2: b2 / a0, a1: a1 / a0, a2: a2 / a0, z1: 0.0, z2: 0.0 }
     }
-    pub fn highpass(fc: f64, q: f64, sr: f64) -> Self {
-        let w = 2.0 * PI * fc / sr;
-        let (s, c) = w.sin_cos();
-        let alpha = s / (2.0 * q);
-        Self::from_coeffs((1.0 + c) / 2.0, -(1.0 + c), (1.0 + c) / 2.0, 1.0 + alpha, -2.0 * c, 1.0 - alpha)
-    }
-    pub fn lowpass(fc: f64, q: f64, sr: f64) -> Self {
-        let w = 2.0 * PI * fc / sr;
-        let (s, c) = w.sin_cos();
-        let alpha = s / (2.0 * q);
-        Self::from_coeffs((1.0 - c) / 2.0, 1.0 - c, (1.0 - c) / 2.0, 1.0 + alpha, -2.0 * c, 1.0 - alpha)
-    }
-    pub fn bandpass(fc: f64, q: f64, sr: f64) -> Self {
-        let w = 2.0 * PI * fc / sr;
-        let (s, c) = w.sin_cos();
-        let alpha = s / (2.0 * q);
-        Self::from_coeffs(alpha, 0.0, -alpha, 1.0 + alpha, -2.0 * c, 1.0 - alpha)
-    }
-    pub fn high_shelf(fc: f64, gain_db: f64, q: f64, sr: f64) -> Self {
-        let a = 10f64.powf(gain_db / 40.0);
-        let w = 2.0 * PI * fc / sr;
-        let (s, c) = w.sin_cos();
-        let alpha = s / (2.0 * q);
-        let sa = 2.0 * a.sqrt() * alpha;
-        Self::from_coeffs(
-            a * ((a + 1.0) + (a - 1.0) * c + sa),
-            -2.0 * a * ((a - 1.0) + (a + 1.0) * c),
-            a * ((a + 1.0) + (a - 1.0) * c - sa),
-            (a + 1.0) - (a - 1.0) * c + sa,
-            2.0 * ((a - 1.0) - (a + 1.0) * c),
-            (a + 1.0) - (a - 1.0) * c - sa,
-        )
-    }
     #[inline(always)]
     pub fn tick(&mut self, x: f64) -> f64 {
         let y = self.b0 * x + self.z1;
         self.z1 = self.b1 * x - self.a1 * y + self.z2;
         self.z2 = self.b2 * x - self.a2 * y;
         y
-    }
-    pub fn process(&mut self, x: &[f64]) -> Vec<f64> {
-        x.iter().map(|v| self.tick(*v)).collect()
     }
 }
 

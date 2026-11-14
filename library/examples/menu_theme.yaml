@@ -8,15 +8,15 @@ swing_unit: 0.25
 humanize: {timing_ms: 8, velocity: 0.07}
 tail: 4
 instruments:
-  keys: {patch: builtin:instruments/keys_epiano, gain_db: 0, sends: {room: -9}}
-  pad: {patch: builtin:instruments/pad_warm, params: {cutoff: 1200}, gain_db: -6, sends: {room: -9}}
-  bass: {patch: builtin:instruments/bass_sub, params: {warmth: 0.5}, gain_db: -1}
-  flute: {patch: builtin:instruments/flute_breath, gain_db: -3, pan: 0.15, sends: {room: -5}}
+  keys: {patch: builtin:instruments/keys_epiano, gain_db: 1, sends: {room: -6}}
+  pad: {patch: builtin:instruments/pad_warm, params: {cutoff: 2200}, gain_db: -3, sends: {room: -6}}
+  bass: {patch: builtin:instruments/bass_sub, params: {warmth: 0.6}, gain_db: -6}
+  flute: {patch: builtin:instruments/flute_breath, gain_db: 1, pan: 0.15, sends: {room: -5}}
   perc:
     kit:
-      kick: {patch: builtin:drums/kick, params: {click: 0.2, decay: 0.25}, gain_db: -3}
+      kick: {patch: builtin:drums/kick, params: {click: 0.3, decay: 0.22}, gain_db: -6}
       rim: {patch: builtin:drums/rim, pan: -0.2}
-      shaker: {patch: builtin:drums/shaker, gain_db: -8, pan: 0.3}
+      shaker: {patch: builtin:drums/shaker, gain_db: -3, pan: 0.3}
     sends: {room: -14}
 buses:
   room: {fx: [{type: reverb, decay: 1.8, size: 1, damping: 5000, mix: 1}]}

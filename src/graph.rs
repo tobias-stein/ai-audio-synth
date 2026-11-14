@@ -478,7 +478,6 @@ pub struct Ctx {
     pub os: usize,
     pub n: usize,
     pub seed: u64,
-    pub dur: f64,
 }
 
 impl Ctx {
@@ -570,7 +569,7 @@ pub fn render_graph_probe(patch: &Patch, o: &RenderOpts, mut levels: Option<&mut
         return Err(Error::invalid("render would be longer than 15 minutes").at("duration"));
     }
     let gate_dur = gate_dur_opt.unwrap_or(dur).min(dur);
-    let ctx = Ctx { sr: sr_int, base_sr: o.sr as f64, os, n, seed: o.seed, dur };
+    let ctx = Ctx { sr: sr_int, base_sr: o.sr as f64, os, n, seed: o.seed };
 
     let mut env: HashMap<String, Val> = HashMap::new();
     let freq = o.freq.unwrap_or(440.0);

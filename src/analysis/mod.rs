@@ -232,7 +232,7 @@ pub fn analyze(sig: &Sig, sr: u32, opts: &AnalyzeOpts) -> Analysis {
                         }
                     }
                     // scaled so a full-scale sine reads about 0 dB
-                    round_to((10.0 * (p / (e - a) as f64 * 4.0 + 1e-12).log10()).max(-120.0), 0)
+                    round_to((10.0 * (p / (e - a) as f64 * 2.0 + 1e-12).log10()).max(-120.0), 0)
                 })
                 .collect()
         })

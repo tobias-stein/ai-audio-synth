@@ -296,11 +296,12 @@ fn dispatch(cmd: Cmd) -> Result<Output> {
         }
         Cmd::Validate { source } => cmd_validate(&source),
         Cmd::Analyze(a) => {
-            let (an, _, loop_in_file) = analyze_file(&a.file, a.is_loop)?;
+            let (an, encoding, loop_in_file) = analyze_file(&a.file, a.is_loop)?;
             let mut v = an.to_json(a.detail);
             let o = v.as_object_mut().unwrap();
             let mut out = Map::new();
             out.insert("file_path".into(), json!(a.file.display().to_string()));
+            out.insert("encoding".into(), json!(encoding));
             out.insert("analyzed_as_loop".into(), json!(a.is_loop || loop_in_file));
             out.extend(std::mem::take(o));
             ok(Value::Object(out))
@@ -364,14 +365,15 @@ fn dispatch(cmd: Cmd) -> Result<Output> {
     }
 }
 
-fn analyze_file(path: &Path, is_loop: bool) -> Result<(Analysis, Sig, bool)> {
+fn analyze_file(path: &Path, is_loop: bool) -> Result<(Analysis, String, bool)> {
     let w = read_wav(path)?;
     if w.sig.is_empty() {
         return Err(Error::new("unsupported_format", format!("{} contains no audio", path.display())));
     }
     let loop_in_file = w.loop_points.is_some();
     let an = analyze(&w.sig, w.sample_rate, &AnalyzeOpts { is_loop: is_loop || loop_in_file });
-    Ok((an, w.sig, loop_in_file))
+    let encoding = format!("{}-bit {}", w.bits, if w.float { "float" } else { "PCM" });
+    Ok((an, encoding, loop_in_file))
 }
 
 fn parse_sets(sets: &[String]) -> Result<Vec<(String, f64)>> {
@@ -595,6 +597,10 @@ fn cmd_validate(source: &str) -> Result<Output> {
                 "source": d.origin,
                 "kind": "patch",
                 "valid": true,
+                "name": p.name,
+                "description": p.description,
+                "category": p.category,
+                "tags": p.tags,
                 "nodes": p.nodes.iter().map(|n| json!({"name": n.name, "type": n.spec.name})).collect::<Vec<_>>(),
                 "params": p.params.iter().map(|x| json!({"name": x.name, "default": x.default, "min": x.min, "max": x.max, "doc": x.doc})).collect::<Vec<_>>(),
                 "duration_s": p.duration_with(&[])?,

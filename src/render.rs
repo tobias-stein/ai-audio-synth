@@ -10,7 +10,6 @@ use crate::util::{db_to_lin, lin_to_db, round_to};
 
 pub struct Asset {
     pub sig: Sig,
-    pub sr: u32,
     /// Sample range to mark as a loop in the output file.
     pub loop_points: Option<(u32, u32)>,
     pub warnings: Vec<String>,
@@ -142,7 +141,7 @@ pub fn render_patch(patch: &Patch, o: &AssetOpts) -> Result<Asset> {
         }
     }
     let loop_points = if looped { Some((0, sig.len().saturating_sub(1) as u32)) } else { None };
-    Ok(Asset { sig, sr: o.sr, loop_points, warnings, levels })
+    Ok(Asset { sig, loop_points, warnings, levels })
 }
 
 /// Render one note of an instrument patch for the sequencer: gate plus tail,
