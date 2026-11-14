@@ -1,0 +1,17 @@
+description: Synthetic string ensemble - sustained chords, swells and ostinatos for cinematic scores. Not a sampled orchestra.
+category: pad
+tail: 0.9
+duration: 2.25
+gate: 1.2
+params:
+  attack: {default: 0.12, min: 0.005, max: 3, doc: "bow attack time in seconds; short for ostinatos, long for swells"}
+  brightness: {default: 0.5, min: 0, max: 1, doc: "0 = dark and distant, 1 = bright and close"}
+nodes:
+  env: {type: adsr, attack: attack, decay: 0.3, sustain: 0.85, release: 0.5}
+  vib: {type: lfo, rate: 5.2, amp: 0.004}
+  section: {type: osc, wave: saw, freq: "freq * (1 + vib)", unison: 9, detune: 30, spread: 1}
+  octave: {type: osc, wave: saw, freq: "freq * 2.003", unison: 3, detune: 20, spread: 1, amp: 0.25}
+  body: {type: lowpass, in: "section + octave", cutoff: "900 + 6000 * brightness * (0.5 + 0.5 * vel)", q: 0.7}
+  wood: {type: peak, in: body, freq: 400, gain_db: 3, q: 0.8}
+  thin: {type: highpass, in: wood, cutoff: 120}
+  out: {type: gain, in: "thin * env", db: -15}

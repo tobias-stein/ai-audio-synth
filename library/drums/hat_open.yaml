@@ -1,0 +1,18 @@
+description: Open hi-hat with a sizzling decay.
+category: drums
+duration: 0.7
+tail: 0.6
+params:
+  decay: {default: 0.4, min: 0.1, max: 1.5, doc: "length in seconds"}
+  tone: {default: 1, min: 0.6, max: 1.6, doc: "pitch multiplier of the metallic partials"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.0005, 1], [1, 0]], curve: exp, time_scale: "decay * 1.3"}
+  o1: {type: osc, wave: square, freq: "205.3 * 2 * tone"}
+  o2: {type: osc, wave: square, freq: "304.4 * 2 * tone"}
+  o3: {type: osc, wave: square, freq: "369.6 * 2 * tone"}
+  o4: {type: osc, wave: square, freq: "522.7 * 2 * tone"}
+  o5: {type: osc, wave: square, freq: "540 * 2 * tone"}
+  o6: {type: osc, wave: square, freq: "800 * 2 * tone"}
+  hiss: {type: noise}
+  metal: {type: highpass, in: "(o1 + o2 + o3 + o4 + o5 + o6) * 0.25 + hiss * 0.5", cutoff: 6000, slope: "24"}
+  out: {type: gain, in: "metal * env", db: -8}

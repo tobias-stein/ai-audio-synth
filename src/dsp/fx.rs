@@ -104,6 +104,31 @@ pub fn delay(input: &Sig, a: &DelayArgs, sr: f64) -> Sig {
     }
 }
 
+/// Sine oscillator advanced by rotation, far cheaper than calling `sin` per sample.
+struct Rotor {
+    s: f64,
+    c: f64,
+    ds: f64,
+    dc: f64,
+}
+
+impl Rotor {
+    fn new(freq: f64, phase_cycles: f64, sr: f64) -> Self {
+        let (s, c) = (TAU * phase_cycles).sin_cos();
+        let (ds, dc) = (TAU * freq / sr).sin_cos();
+        Rotor { s, c, ds, dc }
+    }
+    #[inline(always)]
+    fn next(&mut self) -> f64 {
+        let v = self.s;
+        let s = self.s * self.dc + self.c * self.ds;
+        let c = self.c * self.dc - self.s * self.ds;
+        self.s = s;
+        self.c = c;
+        v
+    }
+}
+
 /// Multi-voice chorus; always returns stereo.
 pub fn chorus(input: &Sig, rate: f64, depth_ms: f64, mix: f64, voices: usize, sr: f64) -> Sig {
     let n = input.len();
@@ -113,19 +138,17 @@ pub fn chorus(input: &Sig, rate: f64, depth_ms: f64, mix: f64, voices: usize, sr
     let max = (base + depth) as usize + 16;
     let ins = [&input.l[..], input.right()];
     let mut outs: [Vec<f64>; 2] = [vec![0.0; n], vec![0.0; n]];
+    let norm = 1.0 / (voices as f64).sqrt();
     for c in 0..2 {
         let mut line = DelayLine::new(max);
+        let mut lfos: Vec<Rotor> = (0..voices).map(|v| Rotor::new(rate * (1.0 + 0.07 * v as f64), v as f64 / voices as f64 + c as f64 * 0.25, sr)).collect();
         for i in 0..n {
-            let t = i as f64 / sr;
             let mut wet = 0.0;
-            for v in 0..voices {
-                let ph = t * rate * (1.0 + 0.07 * v as f64) + v as f64 / voices as f64 + c as f64 * 0.25;
-                let d = base + depth * (0.5 + 0.5 * (TAU * ph).sin());
-                wet += line.read(d);
+            for lfo in lfos.iter_mut() {
+                wet += line.read(base + depth * (0.5 + 0.5 * lfo.next()));
             }
-            wet /= (voices as f64).sqrt();
             line.push(ins[c][i]);
-            outs[c][i] = ins[c][i] * (1.0 - mix) + wet * mix;
+            outs[c][i] = ins[c][i] * (1.0 - mix) + wet * norm * mix;
         }
     }
     let [l, r] = outs;
@@ -232,18 +255,23 @@ pub fn distort(input: &Sig, shape: Shape, drive_db: &P, mix: f64, oversample: us
     let os = oversample.max(1);
     input.map_channels(|_, x| {
         let up = interpolate(x, os);
-        let shaped: Vec<f64> = up
-            .iter()
-            .enumerate()
-            .map(|(i, &v)| {
-                let g = db_to_lin(drive_db.at((i / os).min(x.len().saturating_sub(1))));
-                shape.apply(v * g)
-            })
-            .collect();
+        let shaped: Vec<f64> = match drive_db {
+            P::C(d) => {
+                let g = db_to_lin(*d);
+                up.iter().map(|&v| shape.apply(v * g)).collect()
+            }
+            P::B(_) => up
+                .iter()
+                .enumerate()
+                .map(|(i, &v)| {
+                    let g = db_to_lin(drive_db.at((i / os).min(x.len().saturating_sub(1))));
+                    shape.apply(v * g)
+                })
+                .collect(),
+        };
         let mut wet = decimate(&shaped, os);
-        if shape == Shape::Tube {
-            wet = dc_block(&wet, sr);
-        }
+        // waveshaping an asymmetric signal creates a DC offset; remove it
+        wet = dc_block(&wet, sr);
         wet.iter().zip(x).map(|(w, d)| d * (1.0 - mix) + w * mix).collect()
     })
 }

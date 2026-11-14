@@ -1,0 +1,13 @@
+description: Negative two-note buzz (denied, invalid action, not enough resources).
+category: ui
+profile: ui
+duration: 0.4
+params:
+  pitch: {default: 330, min: 200, max: 800, doc: "pitch of the first buzz in Hz"}
+nodes:
+  e1: {type: env, points: [[0, 0], [0.003, 1], [0.09, 0.8], [0.11, 0]]}
+  e2: {type: env, points: [[0, 0], [0.13, 0], [0.133, 1], [0.28, 0.8], [0.33, 0]]}
+  b1: {type: osc, wave: square, freq: pitch, amp: e1}
+  b2: {type: osc, wave: square, freq: "pitch * semi(-4)", amp: e2}
+  filt: {type: lowpass, in: "b1 + b2", cutoff: 3200, q: 1.2}
+  out: {type: highpass, in: filt, cutoff: 320}

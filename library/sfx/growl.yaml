@@ -1,0 +1,22 @@
+description: Creature growl or roar built from a rough voiced source through morphing vowel filters.
+category: creature
+profile: oneshot
+duration: "length + 0.5"
+params:
+  length: {default: 1.1, min: 0.3, max: 4, doc: "seconds of vocalization"}
+  size: {default: 0.6, min: 0, max: 1, doc: "0 = small animal, 1 = giant beast"}
+  aggression: {default: 0.6, min: 0, max: 1, doc: "0 = low rumble, 1 = snarling roar"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.12, 1], [0.7, 0.8], [1, 0]], curve: smooth, time_scale: length}
+  jitter: {type: lfo, wave: smooth, rate: 27}
+  drift: {type: env, points: [[0, 0.85], [0.3, 1.1], [1, 0.7]], curve: smooth, time_scale: length}
+  f: {type: expr, expr: "(140 - 85 * size) * drift * (1 + 0.06 * jitter * (0.5 + aggression))"}
+  cords: {type: osc, wave: saw, freq: f}
+  cords2: {type: osc, wave: pulse, pw: 0.25, freq: "f * 0.997"}
+  breath_src: {type: noise, color: pink}
+  rough: {type: expr, expr: "(cords + cords2 * 0.7) * (1 + 0.5 * jitter * aggression) + breath_src * (0.6 + aggression)"}
+  mouth: {type: env, points: [[0, 3.5], [0.3, 0], [0.8, 3], [1, 4]], curve: smooth, time_scale: length}
+  throat: {type: formant, in: rough, vowel: mouth, shift: "1.1 - 0.55 * size", q: 5}
+  chest: {type: bandpass, in: rough, cutoff: "260 - 100 * size", q: 0.8}
+  voice: {type: distort, in: "(throat * 1.5 + chest * 0.5) * env", drive_db: "6 + 14 * aggression", shape: tube}
+  out: {type: reverb, in: voice, decay: 0.6, size: 0.8, mix: 0.12}

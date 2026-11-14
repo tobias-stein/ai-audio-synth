@@ -1,0 +1,17 @@
+description: Punchy analog-style synth bass with a filter that snaps shut. The workhorse for electronic and hybrid scores.
+category: bass
+tail: 0.3
+duration: 0.81
+gate: 0.36
+params:
+  cutoff: {default: 900, min: 100, max: 8000, doc: "filter brightness at the start of each note, in Hz"}
+  resonance: {default: 2, min: 0.5, max: 10, doc: "filter resonance"}
+  drive: {default: 8, min: 0, max: 30, doc: "distortion in dB"}
+nodes:
+  amp_env: {type: adsr, attack: 0.004, decay: 0.25, sustain: 0.7, release: 0.1}
+  filt_env: {type: adsr, attack: 0.002, decay: 0.18, sustain: 0.15, release: 0.1}
+  saw: {type: osc, wave: saw, freq: freq}
+  sq: {type: osc, wave: pulse, pw: 0.4, freq: "freq * 0.5", amp: 0.7}
+  filt: {type: lowpass, in: "saw + sq", cutoff: "80 + cutoff * (0.3 + 2.5 * filt_env) * (0.5 + 0.5 * vel)", q: resonance, slope: "24"}
+  dirt: {type: distort, in: "filt * amp_env", drive_db: drive, shape: tube}
+  out: {type: gain, in: dirt, db: -13}

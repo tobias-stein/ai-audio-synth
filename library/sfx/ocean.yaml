@@ -1,0 +1,19 @@
+description: Looping ocean waves rolling onto a shore.
+category: ambience
+profile: ambience-loop
+duration: 20
+loop: {crossfade: 4}
+normalize: {lufs: -26}
+params:
+  period: {default: 10, min: 4, max: 20, doc: "seconds between waves"}
+nodes:
+  wave: {type: lfo, wave: sine, rate: "1 / period", unipolar: true}
+  wave2: {type: lfo, wave: smooth, rate: 0.13, unipolar: true}
+  swell: {type: expr, expr: "wave ^ 2.5 * (0.6 + 0.4 * wave2)"}
+  src: {type: noise, color: pink, stereo: true}
+  crash: {type: lowpass, in: src, cutoff: "400 + 5000 * swell"}
+  foam_src: {type: noise, stereo: true}
+  foam: {type: highpass, in: foam_src, cutoff: 4000}
+  deep_src: {type: noise, color: brown, stereo: true}
+  deep: {type: bandpass, in: deep_src, cutoff: 110, q: 0.7}
+  out: {type: expr, expr: "crash * (0.15 + swell) * 2 + foam * swell * swell * 0.15 + deep * 0.5"}

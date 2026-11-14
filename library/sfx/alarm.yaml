@@ -1,0 +1,16 @@
+description: Looping two-tone alarm siren for alerts, lockdowns and countdowns.
+category: scifi
+profile: sfx-loop
+duration: 1
+loop: {crossfade: 0.02}
+normalize: {peak_db: -6}
+params:
+  low: {default: 600, min: 200, max: 2000, doc: "lower tone in Hz"}
+  high: {default: 800, min: 200, max: 2500, doc: "upper tone in Hz"}
+nodes:
+  # alternates every quarter second; whole cycles of each tone fit the loop
+  which: {type: expr, expr: "gt(mod(t, 0.5), 0.25)"}
+  shape: {type: expr, expr: "0.5 - 0.5 * cos(tau * mod(t, 0.25) / 0.25)"}
+  tone: {type: osc, wave: pulse, pw: 0.4, freq: "mix(low, high, which)"}
+  filt: {type: lowpass, in: tone, cutoff: 3500, q: 1}
+  out: {type: expr, expr: "filt * (0.25 + 0.75 * shape ^ 0.3)"}

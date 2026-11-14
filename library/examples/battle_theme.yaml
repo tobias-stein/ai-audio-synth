@@ -1,0 +1,110 @@
+kind: score
+title: Battle theme
+description: Driving hybrid action cue - war drums, string ostinato, brass theme and a synth lead.
+tempo: 150
+key: E minor
+humanize: {timing_ms: 4, velocity: 0.06}
+tail: 5
+instruments:
+  drums:
+    kit:
+      kick: builtin:drums/kick
+      snare: builtin:drums/snare
+      hat: {patch: builtin:drums/hat_closed, gain_db: -4}
+      crash: {patch: builtin:drums/crash, gain_db: -3}
+    sends: {hall: -16}
+  war:
+    kit:
+      low: {patch: builtin:drums/taiko, params: {pitch: 62}, pan: -0.2}
+      high: {patch: builtin:drums/taiko, params: {pitch: 96, decay: 0.5}, pan: 0.25, gain_db: -3}
+      boom: builtin:drums/sub_boom
+    gain_db: -1
+    sends: {hall: -8}
+  bass: {patch: builtin:instruments/bass_synth, params: {cutoff: 1100, drive: 12}, gain_db: -2, duck: {source: drums.kick, amount_db: 4, release_ms: 120}}
+  strings: {patch: builtin:instruments/pad_strings, params: {attack: 0.01, brightness: 0.7}, gain_db: -1, sends: {hall: -9}}
+  brass: {patch: builtin:instruments/brass_synth, params: {brightness: 0.75}, gain_db: 0, sends: {hall: -8}}
+  lead: {patch: builtin:instruments/lead_saw, gain_db: -4, sends: {hall: -8, echo: -12}}
+  choir: {patch: builtin:instruments/pad_choir, gain_db: -6, sends: {hall: -4}}
+buses:
+  hall: {fx: [{type: reverb, decay: 2.8, size: 1.8, damping: 5000, predelay_ms: 20, mix: 1}]}
+  echo: {fx: [{type: delay, time: 0.3, feedback: 0.35, mix: 1, pingpong: true}]}
+master:
+  fx: [{type: compressor, threshold_db: -14, ratio: 2.5, attack_ms: 20, release_ms: 150, makeup_db: 2}]
+  lufs: -14
+patterns:
+  beat:
+    drums:
+      kick:  "x..x..x.x..x..x."
+      snare: "....x.......x..."
+      hat:   "x.x.x.x.x.x.x.x."
+  beat_crash:
+    drums:
+      crash: "x..............."
+      kick:  "x..x..x.x..x..x."
+      snare: "....x.......x..."
+      hat:   "x.x.x.x.x.x.x.x."
+  war_a:
+    drums:
+      low:  "X.....x...x.x..."
+      high: "....x.......x.xx"
+  war_boom:
+    drums:
+      boom: "X..............."
+      low:  "X.....x...x.x..."
+      high: "....x.......x.xx"
+  final_hit:
+    drums:
+      crash: "X..............."
+      kick:  "X..............."
+  final_war:
+    drums:
+      boom: "X..............."
+      low:  "X..............."
+  ostinato_a: {chords: "Em:8 C:4 D:4", octave: 3, style: arp_updown, rate: 0.25, gate: 0.6, vel: 0.7}
+  ostinato_b: {chords: "C:4 D:4 Em:8", octave: 3, style: arp_updown, rate: 0.25, gate: 0.6, vel: 0.75}
+  bass_a:
+    step: 0.5
+    notes:
+      - "E2 E2 E2 E2 E2 E2 G2 E2"
+      - "E2 E2 E2 E2 E2 E2 B1 D2"
+      - "C2 C2 C2 C2 C2 C2 E2 C2"
+      - "D2 D2 D2 D2 D2 D2 F#2 D2"
+  bass_b:
+    step: 0.5
+    notes:
+      - "C2 C2 C2 C2 C2 C2 E2 C2"
+      - "D2 D2 D2 D2 D2 D2 F#2 D2"
+      - "E2 E2 E2 E2 E2 E2 G2 E2"
+      - "E2 E2 E2 E2 E2 E2 B1 D2"
+  brass_a:
+    notes:
+      - "E4:1.5 G4:0.5 B4:2"
+      - "A4:1 G4:1 F#4:2"
+      - "G4:1.5 E4:0.5 C5:2"
+      - "B4:1 A4:1 F#4:2"
+      - "E4:1.5 G4:0.5 B4:2"
+      - "D5:1 B4:1 A4:2"
+      - "C5:1.5 B4:0.5 G4:2"
+      - "A4:2 B4:2"
+    vel: 0.9
+  brass_stabs: {chords: "C:4 D:4 Em:4 Em:4", octave: 3, voicing: close, gate: 0.2, vel: 0.85}
+  lead_b:
+    notes:
+      - "E5:2 G5:2"
+      - "F#5:2 A5:2"
+      - "B5:3 A5:1"
+      - "G5:4"
+      - "E5:2 G5:2"
+      - "F#5:2 D5:2"
+      - "E5:4"
+      - "_:4"
+    vel: 0.85
+  choir_b: {chords: "C:4 D:4 Em:8", octave: 4, vel: 0.7}
+  end_chord: {chords: "Em:8", octave: 3, voicing: open}
+  end_bass: {notes: "E1:8"}
+sections:
+  intro: {bars: 4, tracks: {war: war_a, strings: ostinato_a}}
+  a: {bars: 8, tracks: {drums: [beat_crash, beat, beat, beat], war: [war_boom, war_a, war_a, war_a], bass: bass_a, strings: ostinato_a, brass: brass_a}}
+  b: {bars: 8, tracks: {drums: [beat_crash, beat, beat, beat], war: [war_boom, war_a, war_a, war_a], bass: bass_b, strings: ostinato_b, brass: brass_stabs, lead: lead_b, choir: choir_b}}
+  end: {bars: 2, tracks: {drums: final_hit, war: final_war, bass: end_bass, strings: end_chord, brass: end_chord, choir: end_chord}}
+arrangement: [intro, a, b, a, end]

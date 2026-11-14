@@ -1,0 +1,17 @@
+description: Air movement passing the listener - fast objects, dashes, transitions, camera moves.
+category: motion
+profile: whoosh
+duration: "0.3 + 0.9 / speed"
+params:
+  speed: {default: 1.2, min: 0.4, max: 3, doc: "how fast the object passes: higher is shorter and brighter"}
+  weight: {default: 0.4, min: 0, max: 1, doc: "0 = thin and airy, 1 = large and heavy"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.45, 1], [1, 0]], curve: smooth, time_scale: "0.9 / speed"}
+  center: {type: env, points: [[0, 300], [0.5, 2600], [1, 350]], curve: smooth, time_scale: "0.9 / speed"}
+  air: {type: noise, color: pink, stereo: true}
+  band: {type: bandpass, in: air, cutoff: "center * (1.3 - 0.8 * weight) * rand(0.9, 1.1)", q: 1.4}
+  low_src: {type: noise, color: brown, stereo: true}
+  low: {type: lowpass, in: low_src, cutoff: "120 + center * 0.15"}
+  body: {type: expr, expr: "(band * 4 + low * 2 * weight) * env"}
+  swirl: {type: flanger, in: body, rate: "1.2 * speed", depth_ms: 2.5, feedback: 0.4, mix: 0.4}
+  out: {type: pan, in: swirl, pos: "(t * speed / 0.9 - 0.5) * 1.4 * choose(-1, 1)"}

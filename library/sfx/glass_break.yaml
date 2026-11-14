@@ -1,0 +1,22 @@
+description: Glass shattering - an initial crash followed by tinkling shards.
+category: impact
+profile: impact
+duration: "0.6 + 0.9 * size"
+params:
+  size: {default: 0.5, min: 0, max: 1, doc: "0 = small bottle, 1 = large window"}
+nodes:
+  crash_env: {type: env, points: [[0, 0], [0.0005, 1], [0.03, 0.3], [0.2, 0]], curve: exp}
+  crash: {type: noise, color: pink, amp: "crash_env * 3"}
+  crash_f: {type: highpass, in: crash, cutoff: "1800 - 900 * size"}
+  shard_env: {type: env, points: [[0, 1], [0.1, 0.5], [1, 0]], curve: exp, time_scale: "0.5 + 0.9 * size"}
+  s1_src: {type: dust, density: "140 * shard_env * (0.5 + size)"}
+  s2_src: {type: dust, density: "110 * shard_env * (0.5 + size)"}
+  s3_src: {type: dust, density: "80 * shard_env * (0.5 + size)"}
+  s1: {type: modal, in: s1_src, modes: glass, freq: "rand(2000, 2700) - 600 * size", decay: 0.12, damping: 0.2}
+  s2: {type: modal, in: s2_src, modes: glass, freq: "rand(3000, 3900) - 600 * size", decay: 0.1, damping: 0.2}
+  s3: {type: modal, in: s3_src, modes: glass, freq: "rand(4300, 5600) - 600 * size", decay: 0.08, damping: 0.2}
+  pane: {type: modal, in: crash_f, modes: plate, freq: "900 - 400 * size", decay: 0.12, damping: 0.4, amp: 0.02}
+  shards: {type: pan, in: "s1 * 0.3 + s3 * 0.2", pos: -0.4}
+  shards2: {type: pan, in: "s2 * 0.3", pos: 0.5}
+  sum: {type: mix, inputs: [crash_f, pane, shards, shards2], gains_db: [0, 0, 3, 3]}
+  out: {type: reverb, in: sum, decay: 0.5, size: 0.6, mix: 0.12, predelay_ms: 2}

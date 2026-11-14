@@ -1,0 +1,12 @@
+description: Plucked string bass - upright or muted electric character.
+category: bass
+tail: 0.3
+duration: 1.11
+gate: 0.66
+params:
+  brightness: {default: 0.35, min: 0, max: 1, doc: "0 = soft and round, 1 = bright and twangy"}
+nodes:
+  env: {type: adsr, attack: 0.001, decay: 0.05, sustain: 1, release: 0.15}
+  string: {type: pluck, freq: freq, decay: 2.2, brightness: "brightness * (0.6 + 0.4 * vel)", position: 0.18}
+  body: {type: peak, in: string, freq: 110, gain_db: 4, q: 1}
+  out: {type: lowpass, in: "body * env * 0.55", cutoff: 4000}

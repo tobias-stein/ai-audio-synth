@@ -117,7 +117,7 @@ pub fn reverb(input: &Sig, a: &ReverbArgs, sr: f64, seed: u64) -> Sig {
     let mut pre_r = DelayLine::new(pre + 2);
 
     // Keeps perceived wet level roughly stable across decay times.
-    let norm = (1.0 - g_avg * g_avg).max(1e-6).powf(0.25) * 0.42;
+    let norm = (1.0 - g_avg * g_avg).max(1e-6).powf(0.25) * 0.8;
     let hp = one_pole_coef(a.lowcut_hz.clamp(5.0, 2000.0), sr);
     let (mut hp_l, mut hp_r) = (0.0, 0.0);
     let mix = a.mix.clamp(0.0, 1.0);

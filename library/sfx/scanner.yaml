@@ -1,0 +1,16 @@
+description: Computer or scanner readout - a quick series of digital blips.
+category: scifi
+profile: oneshot
+duration: 1.0
+params:
+  pitch: {default: 1500, min: 500, max: 4000, doc: "center pitch in Hz"}
+  rate: {default: 18, min: 6, max: 40, doc: "blips per second"}
+nodes:
+  steps: {type: lfo, wave: steps, rate: rate}
+  gate_env: {type: expr, expr: "lt(mod(t * rate, 1), 0.6) * lt(t, 0.45)"}
+  smooth_gate: {type: lowpass, in: gate_env, cutoff: 400}
+  tone: {type: osc, wave: square, freq: "pitch * semi(round(steps * 7))"}
+  crushed: {type: bitcrush, in: "tone * smooth_gate", bits: 6, rate: 16000}
+  filt: {type: lowpass, in: crushed, cutoff: 6000}
+  hp: {type: highpass, in: filt, cutoff: 400}
+  out: {type: delay, in: hp, time: 0.07, feedback: 0.3, mix: 0.2}

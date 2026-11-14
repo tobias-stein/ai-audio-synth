@@ -1,0 +1,11 @@
+description: Very soft tick for hovering over or moving between menu items.
+category: ui
+profile: ui
+duration: 0.06
+normalize: {peak_db: -8}
+params:
+  pitch: {default: 1400, min: 500, max: 5000, doc: "pitch in Hz"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.002, 1], [0.035, 0]], curve: exp}
+  tone: {type: osc, wave: sine, freq: "pitch * rand(0.97, 1.03)", amp: env}
+  out: {type: highpass, in: tone, cutoff: 500}

@@ -1,0 +1,21 @@
+description: Looping dark tonal drone for tension, caves, space and horror.
+category: ambience
+profile: ambience-loop
+duration: 16
+loop: {crossfade: 4}
+normalize: {lufs: -24}
+params:
+  pitch: {default: 55, min: 30, max: 220, doc: "root pitch in Hz"}
+  tension: {default: 0.4, min: 0, max: 1, doc: "0 = calm and hollow, 1 = dissonant and uneasy"}
+nodes:
+  slow: {type: lfo, wave: smooth, rate: 0.11, unipolar: true}
+  slow2: {type: lfo, wave: smooth, rate: 0.07, unipolar: true}
+  root: {type: osc, wave: saw, freq: pitch, unison: 5, detune: 22, spread: 1}
+  fifth: {type: osc, wave: saw, freq: "pitch * 1.498", unison: 3, detune: 18, spread: 1, amp: 0.5}
+  clash: {type: osc, wave: saw, freq: "pitch * semi(13)", unison: 3, detune: 25, spread: 1, amp: "tension * 0.5 * slow2"}
+  tone: {type: lowpass, in: "root + fifth + clash", cutoff: "180 + 700 * slow", q: 1.6, slope: "24"}
+  sub: {type: osc, wave: sine, freq: pitch, amp: 0.5}
+  air_src: {type: noise, color: pink, stereo: true}
+  air: {type: bandpass, in: air_src, cutoff: "1500 + 2500 * slow2", q: 4}
+  sum: {type: expr, expr: "tone * 0.5 + sub * 0.25 + air * 0.25 * (0.3 + tension)"}
+  out: {type: reverb, in: sum, decay: 6, size: 2.5, damping: 3000, mix: 0.45}

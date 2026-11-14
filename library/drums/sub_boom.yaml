@@ -1,0 +1,15 @@
+description: Deep cinematic boom for downbeats and impacts in trailer-style music.
+category: drums
+duration: 2.6
+tail: 2.5
+params:
+  pitch: {default: 38, min: 25, max: 70, doc: "resting pitch in Hz"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.004, 1], [2.4, 0]], curve: exp}
+  f: {type: sweep, from: "pitch * 2.6", to: pitch, time: 0.35}
+  sub: {type: osc, wave: sine, freq: f, amp: env}
+  hit_env: {type: env, points: [[0, 1], [0.08, 0]], curve: exp}
+  hit_src: {type: noise, color: pink, amp: "hit_env * 2"}
+  hit: {type: lowpass, in: hit_src, cutoff: 1200}
+  sat: {type: distort, in: "sub * 1.5 + hit * 0.6", drive_db: 8, shape: tube}
+  out: {type: gain, in: sat, db: -9}

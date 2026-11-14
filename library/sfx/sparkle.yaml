@@ -1,0 +1,19 @@
+description: Twinkling magical glitter - treasure glow, fairy dust, item highlights.
+category: magic
+profile: oneshot
+duration: 2.5
+params:
+  pitch: {default: 2400, min: 800, max: 5000, doc: "center pitch of the twinkles in Hz"}
+  density: {default: 18, min: 3, max: 60, doc: "twinkles per second"}
+nodes:
+  env: {type: env, points: [[0, 0.6], [0.05, 1], [1.2, 0.6], [1.9, 0]]}
+  d1: {type: dust, density: "density * env", bipolar: false}
+  d2: {type: dust, density: "density * env * 0.7", bipolar: false}
+  d3: {type: dust, density: "density * env * 0.5", bipolar: false}
+  first: {type: impulse}
+  t1: {type: modal, in: "d1 + first", modes: glass, freq: "pitch * rand(0.95, 1.05)", decay: 0.35, damping: 0.3}
+  t2: {type: modal, in: d2, modes: bar, freq: "pitch * semi(7) * rand(0.95, 1.05)", decay: 0.3, damping: 0.4}
+  t3: {type: modal, in: d3, modes: glass, freq: "pitch * semi(12) * rand(0.95, 1.05)", decay: 0.25, damping: 0.3}
+  left: {type: pan, in: "t1 + t3 * 0.6", pos: -0.5}
+  right: {type: pan, in: t2, pos: 0.5}
+  out: {type: reverb, in: "left + right", decay: 1.2, size: 1, mix: 0.3, lowcut: 400}

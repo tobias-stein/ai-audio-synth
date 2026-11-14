@@ -1,0 +1,12 @@
+# The smallest useful patch: an oscillator shaped by an envelope and a filter.
+# Render it with:  aas render minimal_patch.yaml -o beep.wav
+kind: patch
+description: A plucked synth note.
+duration: 1.0
+params:
+  pitch: {default: 220, min: 40, max: 4000, doc: "pitch in Hz"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.005, 1], [0.8, 0]], curve: exp}
+  osc: {type: osc, wave: saw, freq: pitch}
+  filt: {type: lowpass, in: osc, cutoff: "200 + 3000 * env", q: 2}
+  out: {type: expr, expr: "filt * env"}

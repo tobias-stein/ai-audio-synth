@@ -1,0 +1,68 @@
+kind: score
+title: Chiptune level
+description: Upbeat 8-bit platformer loop - two pulse channels, triangle bass and noise drums.
+tempo: 160
+key: C major
+tail: 1
+instruments:
+  lead: {patch: builtin:instruments/chip_pulse, params: {duty: 0.25}, gain_db: 0}
+  arp: {patch: builtin:instruments/chip_pulse, params: {duty: 0.5}, gain_db: -9, pan: 0.2}
+  bass: {patch: builtin:instruments/chip_triangle, gain_db: 0}
+  drums:
+    kit: {kick: builtin:drums/chip_kick, snare: builtin:drums/chip_snare, hat: builtin:drums/chip_hat}
+master: {lufs: -16}
+patterns:
+  beat:
+    drums:
+      kick:  "x...x...x...x.x."
+      snare: "....x.......x..."
+      hat:   "x.x.x.x.x.x.x.x."
+  fill:
+    drums:
+      kick:  "x...x...x......."
+      snare: "....x.....x.xxxx"
+      hat:   "x.x.x.x.x......."
+  lead_a:
+    notes:
+      - "E5:1 G5:1 C6:1 G5:1"
+      - "D5:1 G5:1 B5:1 G5:1"
+      - "C5:1 E5:1 A5:1.5 G5:0.5"
+      - "F5:1 A5:1 C6:2"
+      - "E5:0.5 E5:0.5 G5:1 C6:1 E6:1"
+      - "D6:1 B5:1 G5:2"
+      - "C6:1 A5:1 E5:1 A5:1"
+      - "F5:2 G5:2"
+  lead_b:
+    notes:
+      - "A5:1.5 A5:0.5 C6:1 A5:1"
+      - "B5:1.5 B5:0.5 D6:1 B5:1"
+      - "G5:1 E5:1 G5:1 B5:1"
+      - "C6:2 A5:2"
+      - "A5:1.5 A5:0.5 C6:1 F6:1"
+      - "D6:1 B5:1 G5:1 B5:1"
+      - "C6:3 G5:1"
+      - "C6:2 _:2"
+  arp_a: {chords: "C:4 G:4 Am:4 F:4", octave: 4, style: arp_up, rate: 0.25, gate: 0.8, vel: 0.6}
+  arp_b: {chords: "F:4 G:4 Em:4 Am:4 F:4 G:4 C:8", octave: 4, style: arp_up, rate: 0.25, gate: 0.8, vel: 0.6}
+  bass_a:
+    step: 0.5
+    notes:
+      - "C3 C3 G3 C3 C3 C3 G3 C3"
+      - "G2 G2 D3 G2 G2 G2 D3 G2"
+      - "A2 A2 E3 A2 A2 A2 E3 A2"
+      - "F2 F2 C3 F2 F2 F2 C3 F2"
+  bass_b:
+    step: 0.5
+    notes:
+      - "F2 F2 C3 F2 F2 F2 C3 F2"
+      - "G2 G2 D3 G2 G2 G2 D3 G2"
+      - "E2 E2 B2 E2 E2 E2 B2 E2"
+      - "A2 A2 E3 A2 A2 A2 E3 A2"
+      - "F2 F2 C3 F2 F2 F2 C3 F2"
+      - "G2 G2 D3 G2 G2 G2 D3 G2"
+      - "C3 C3 G3 C3 C3 C3 G3 C3"
+      - "C3 C3 G3 C3 G2 G2 B2 G2"
+sections:
+  a: {bars: 8, tracks: {lead: lead_a, arp: arp_a, bass: bass_a, drums: [beat, beat, beat, fill]}}
+  b: {bars: 8, tracks: {lead: lead_b, arp: arp_b, bass: bass_b, drums: [beat, beat, beat, fill]}}
+arrangement: [a, a, b]

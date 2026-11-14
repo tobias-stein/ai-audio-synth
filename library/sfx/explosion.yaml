@@ -1,0 +1,33 @@
+description: Layered explosion - crack, fiery body, sub boom, rumble and falling debris.
+category: impact
+profile: impact
+duration: "2 + 3 * size + 1.5 * distance"
+params:
+  size: {default: 0.6, min: 0, max: 1, doc: "0 = grenade pop, 1 = massive blast"}
+  distance: {default: 0.15, min: 0, max: 1, doc: "0 = right here (sharp, bright), 1 = far away (dull, boomy, washed out)"}
+nodes:
+  # 1. initial crack
+  crack_env: {type: env, points: [[0, 1], [0.02, 0.2], [0.08, 0]], curve: exp}
+  crack: {type: noise, amp: "crack_env * (1 - 0.8 * distance)"}
+  # 2. fiery body: noise through a closing filter
+  body_env: {type: env, points: [[0, 1], [1, 0]], curve: exp, time_scale: "1.4 + 2.4 * size"}
+  body_cut: {type: sweep, from: "5000 - 2500 * distance", to: 90, time: "0.6 + 1.2 * size"}
+  body_src: {type: noise, color: pink, stereo: true, amp: "body_env * 2.5"}
+  body: {type: lowpass, in: body_src, cutoff: body_cut, slope: "24"}
+  # 3. sub boom
+  boom_env: {type: env, points: [[0, 0], [0.008, 1], [1, 0]], curve: exp, time_scale: "0.7 + 0.9 * size"}
+  boom_f: {type: sweep, from: "140 - 40 * size", to: "48 - 10 * size", time: 0.5}
+  boom: {type: osc, wave: sine, freq: boom_f, amp: "boom_env * (0.8 + 0.7 * size)"}
+  # 4. rumble tail
+  rumble_env: {type: env, points: [[0, 0], [0.03, 1], [1, 0]], curve: exp, time_scale: "2.4 + 3 * size"}
+  rumble_src: {type: noise, color: brown, stereo: true, amp: "rumble_env * 3"}
+  rumble: {type: lowpass, in: rumble_src, cutoff: 220}
+  # 5. debris
+  debris_env: {type: env, points: [[0, 0], [0.12, 1], [1.4, 0]], curve: exp}
+  debris_src: {type: dust, density: "150 * debris_env * (0.3 + size)"}
+  debris: {type: bandpass, in: debris_src, cutoff: "2600 * rand(0.8, 1.2)", q: 1.2}
+  sum: {type: mix, inputs: [crack, body, boom, rumble, debris], gains_db: [0, 0, -3, -6, -8]}
+  dirt: {type: distort, in: sum, drive_db: 9, shape: tube}
+  far: {type: lowpass, in: dirt, cutoff: "16000 * (1 - distance) ^ 2 + 700"}
+  punch: {type: transient, in: far, attack_db: "6 * (1 - distance)"}
+  out: {type: reverb, in: punch, decay: "1.2 + 2 * distance + size", size: 2, damping: 4000, mix: "0.15 + 0.4 * distance", predelay_ms: 15}

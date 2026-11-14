@@ -1,0 +1,13 @@
+description: 8-bit console pulse wave. Chiptune leads and harmonies.
+category: chip
+tail: 0.05
+duration: 0.71
+gate: 0.51
+params:
+  duty: {default: 0.25, min: 0.125, max: 0.5, doc: "pulse duty cycle: 0.125, 0.25 or 0.5 are the classic console settings"}
+nodes:
+  env: {type: adsr, attack: 0.001, decay: 0.08, sustain: 0.7, release: 0.03}
+  vib_depth: {type: env, points: [[0, 0], [0.18, 0], [0.2, 1]], curve: hold}
+  vib: {type: lfo, wave: triangle, rate: 6.5, amp: "0.006 * vib_depth"}
+  pulse: {type: osc, wave: pulse, pw: duty, freq: "freq * (1 + vib)"}
+  out: {type: gain, in: "pulse * env", db: -12}

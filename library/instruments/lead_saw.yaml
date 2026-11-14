@@ -1,0 +1,15 @@
+description: Bright, wide supersaw lead that cuts through a mix. Heroic melodies, trance leads, anthems.
+category: lead
+tail: 0.5
+duration: 1.19
+gate: 0.54
+params:
+  cutoff: {default: 5000, min: 300, max: 16000, doc: "filter cutoff in Hz"}
+  detune: {default: 26, min: 0, max: 80, doc: "unison detune in cents"}
+nodes:
+  env: {type: adsr, attack: 0.01, decay: 0.2, sustain: 0.8, release: 0.25}
+  vib_depth: {type: env, points: [[0, 0], [0.25, 0], [0.6, 1]], curve: smooth}
+  vib: {type: lfo, rate: 5.5, amp: "0.006 * vib_depth"}
+  saws: {type: osc, wave: saw, freq: "freq * (1 + vib)", unison: 7, detune: detune, spread: 0.8}
+  filt: {type: lowpass, in: saws, cutoff: "cutoff * (0.6 + 0.4 * env) * (0.6 + 0.4 * vel)", q: 1.2}
+  out: {type: gain, in: "filt * env", db: -12}

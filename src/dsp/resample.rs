@@ -4,6 +4,7 @@
 use crate::audio::Sig;
 use crate::util::bessel_i0;
 use std::f64::consts::PI;
+use std::sync::OnceLock;
 
 /// Linear-phase lowpass. `cutoff` is in cycles per sample (0..0.5).
 pub fn kaiser_lowpass(taps: usize, cutoff: f64, beta: f64) -> Vec<f64> {
@@ -25,55 +26,90 @@ pub fn kaiser_lowpass(taps: usize, cutoff: f64, beta: f64) -> Vec<f64> {
     h
 }
 
-/// Zero-phase decimation by an integer factor (about 100 dB stopband).
-pub fn decimate(x: &[f64], m: usize) -> Vec<f64> {
-    if m <= 1 {
-        return x.to_vec();
+/// One side of a half-band lowpass: coefficients for offsets 1, 3, 5, ...
+/// from the center tap (which is exactly 0.5; even offsets are zero).
+fn halfband_side() -> &'static [f64] {
+    static TAPS: OnceLock<Vec<f64>> = OnceLock::new();
+    TAPS.get_or_init(|| {
+        const SIDE: usize = 24;
+        let full = kaiser_lowpass(4 * SIDE - 1, 0.25, 10.0);
+        let c = 2 * SIDE - 1;
+        let mut side: Vec<f64> = (0..SIDE).map(|i| full[c + 2 * i + 1]).collect();
+        // the two sides together must carry the other half of the DC gain
+        let sum: f64 = side.iter().sum::<f64>() * 2.0;
+        for v in side.iter_mut() {
+            *v *= 0.5 / sum;
+        }
+        side
+    })
+}
+
+/// Zero-phase decimation by two (about 100 dB stopband from 0.28 of the input rate).
+fn decimate2(x: &[f64]) -> Vec<f64> {
+    let h = halfband_side();
+    let side = h.len();
+    let n_out = x.len().div_ceil(2);
+    // odd-indexed samples, zero-padded so the filter never branches at the edges
+    let mut odd = vec![0.0; n_out + 2 * side];
+    for (j, v) in x.iter().skip(1).step_by(2).enumerate() {
+        odd[side + j] = *v;
     }
-    let taps = 64 * m - 1;
-    let h = kaiser_lowpass(taps, 0.5 / m as f64, 10.0);
-    let c = (taps / 2) as isize;
-    let n_out = x.len().div_ceil(m);
-    let n = x.len() as isize;
     (0..n_out)
         .map(|k| {
-            let center = (k * m) as isize;
-            let lo = (center - c).max(0);
-            let hi = (center + c).min(n - 1);
+            let fwd = &odd[side + k..side + k + side];
+            let back = &odd[k..side + k];
             let mut acc = 0.0;
-            for j in lo..=hi {
-                acc += x[j as usize] * h[(j - center + c) as usize];
+            for i in 0..side {
+                acc += h[i] * (fwd[i] + back[side - 1 - i]);
             }
-            acc
+            0.5 * x[2 * k] + acc
         })
         .collect()
 }
 
-/// Zero-phase interpolation by an integer factor.
-pub fn interpolate(x: &[f64], m: usize) -> Vec<f64> {
-    if m <= 1 {
-        return x.to_vec();
+/// Zero-phase interpolation by two; input samples pass through unchanged.
+fn interpolate2(x: &[f64]) -> Vec<f64> {
+    let h = halfband_side();
+    let side = h.len();
+    let n = x.len();
+    let mut padded = vec![0.0; n + 2 * side];
+    padded[side..side + n].copy_from_slice(x);
+    let mut out = Vec::with_capacity(2 * n);
+    for k in 0..n {
+        out.push(x[k]);
+        let fwd = &padded[side + k + 1..side + k + 1 + side];
+        let back = &padded[k + 1..side + k + 1];
+        let mut acc = 0.0;
+        for i in 0..side {
+            acc += h[i] * (fwd[i] + back[side - 1 - i]);
+        }
+        out.push(2.0 * acc);
     }
-    let taps = 32 * m - 1;
-    let h = kaiser_lowpass(taps, 0.5 / m as f64, 9.0);
-    let c = (taps / 2) as isize;
-    let n = x.len() as isize;
-    let mf = m as f64;
-    (0..x.len() * m)
-        .map(|i| {
-            let i = i as isize;
-            // input samples sit at multiples of m in the upsampled grid
-            let first = (i - c).max(0).div_euclid(m as isize) + if (i - c).max(0).rem_euclid(m as isize) != 0 { 1 } else { 0 };
-            let last = ((i + c) / m as isize).min(n - 1);
-            let mut acc = 0.0;
-            let mut k = first;
-            while k <= last {
-                acc += x[k as usize] * h[(k * m as isize - i + c) as usize];
-                k += 1;
-            }
-            acc * mf
-        })
-        .collect()
+    out
+}
+
+/// Zero-phase decimation by a power of two.
+pub fn decimate(x: &[f64], m: usize) -> Vec<f64> {
+    assert!(m.is_power_of_two(), "resampling factors must be powers of two");
+    let mut v = x.to_vec();
+    let mut f = m;
+    while f > 1 {
+        v = decimate2(&v);
+        f /= 2;
+    }
+    v
+}
+
+/// Zero-phase interpolation by a power of two.
+pub fn interpolate(x: &[f64], m: usize) -> Vec<f64> {
+    assert!(m.is_power_of_two(), "resampling factors must be powers of two");
+    let mut v = x.to_vec();
+    let mut f = m;
+    while f > 1 {
+        v = interpolate2(&v);
+        f /= 2;
+    }
+    v
 }
 
 pub fn decimate_sig(s: &Sig, m: usize) -> Sig {

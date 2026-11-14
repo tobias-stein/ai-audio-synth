@@ -1,0 +1,22 @@
+description: Huge trailer-style hit - sub drop, crack and a long dark tail. For reveals, title cards, boss entrances.
+category: impact
+profile: impact
+duration: 4.8
+params:
+  pitch: {default: 55, min: 30, max: 110, doc: "pitch of the low tone in Hz"}
+nodes:
+  crack_env: {type: env, points: [[0, 0], [0.0005, 1], [0.05, 0]], curve: exp}
+  crack: {type: noise, amp: crack_env}
+  sub_env: {type: env, points: [[0, 0], [0.006, 1], [2.5, 0]], curve: exp}
+  sub_f: {type: sweep, from: "pitch * 2.2", to: "pitch * 0.6", time: 1.2}
+  sub: {type: osc, wave: sine, freq: sub_f, amp: sub_env}
+  brass_env: {type: env, points: [[0, 0], [0.02, 1], [3.2, 0]], curve: exp}
+  brass_src: {type: osc, wave: saw, freq: pitch, unison: 7, detune: 35, spread: 1}
+  brass_src2: {type: osc, wave: saw, freq: "pitch * 1.498", unison: 5, detune: 30, spread: 1, amp: 0.6}
+  brass: {type: lowpass, in: "(brass_src + brass_src2) * brass_env", cutoff: "150 + 2500 * brass_env * brass_env", q: 1.2}
+  thump_src: {type: noise, color: brown, stereo: true, amp: "sub_env * 3"}
+  thump: {type: lowpass, in: thump_src, cutoff: 300}
+  sum: {type: mix, inputs: [crack, sub, brass, thump], gains_db: [-6, 0, -3, -6]}
+  dirt: {type: distort, in: sum, drive_db: 8, shape: tube}
+  punch: {type: transient, in: dirt, attack_db: 5}
+  out: {type: reverb, in: punch, decay: 4.5, size: 2.5, damping: 3500, mix: 0.35, predelay_ms: 20}

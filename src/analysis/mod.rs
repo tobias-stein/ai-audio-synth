@@ -273,7 +273,11 @@ pub fn analyze(sig: &Sig, sr: u32, opts: &AnalyzeOpts) -> Analysis {
         let w = ((0.05 * srf) as usize).min(n / 2);
         let level_diff_db = lin_to_db(rms(&mono[..w]).max(1e-9)) - lin_to_db(rms(&mono[n - w..]).max(1e-9));
         let jump_ratio = if local > 1e-9 { kink / local } else if kink > 1e-6 { 99.0 } else { 0.0 };
-        let audible = (kink > db_to_lin(-60.0) && jump_ratio > 3.0) || level_diff_db.abs() > 3.0;
+        // A level step across the seam only matters for steady material (an
+        // ambience that fades); in rhythmic material bars start and end differently.
+        let inner = &envelope_db[2..ENV_POINTS - 2];
+        let steady = inner.iter().cloned().fold(f64::MIN, f64::max) - inner.iter().cloned().fold(f64::MAX, f64::min) < 8.0;
+        let audible = (kink > db_to_lin(-60.0) && jump_ratio > 3.0) || (steady && level_diff_db.abs() > 3.0);
         Some(LoopSeam { jump_db: lin_to_db(kink), jump_ratio, level_diff_db, audible })
     } else {
         None
@@ -351,7 +355,7 @@ fn find_issues(a: &Analysis, opts: &AnalyzeOpts) -> Vec<Issue> {
     if !opts.is_loop && a.start_level_db > -20.0 {
         add("info", "abrupt_start", format!("the first sample is already at {:.0} dBFS, which adds a click to the attack", a.start_level_db), "fine for impacts; otherwise start oscillators at phase 0 or give the envelope a 1-3 ms attack");
     }
-    if a.peak_db < -20.0 {
+    if a.peak_db < -26.0 {
         add("warning", "too_quiet", format!("peak level is only {:.1} dBFS", a.peak_db), "enable normalization (`normalize: {peak_db: -1}`) or raise the output gain");
     }
     if let Some(s) = &a.stereo {
@@ -370,7 +374,7 @@ fn find_issues(a: &Analysis, opts: &AnalyzeOpts) -> Vec<Issue> {
     }
     if let Some(l) = &a.loop_seam {
         if l.audible {
-            let msg = if l.level_diff_db.abs() > 3.0 {
+            let msg = if !(l.jump_db > -60.0 && l.jump_ratio > 3.0) {
                 format!("the loop does not join smoothly: level differs by {:.1} dB between end and start", l.level_diff_db)
             } else {
                 format!("the loop point clicks: a {:.0} dBFS discontinuity where the end wraps to the start", l.jump_db)
@@ -458,12 +462,12 @@ fn describe(a: &Analysis, opts: &AnalyzeOpts) -> String {
         Some(_) => parts.push("Very wide stereo image".into()),
     }
     if let Some(bpm) = a.tempo_bpm {
-        if a.tempo_confidence > 0.2 {
+        if a.is_musical() {
             parts.push(format!("Rhythmic, about {bpm:.0} BPM with {} onsets", a.onsets.len()));
         }
     }
     if let Some(k) = &a.key {
-        if k.confidence > 0.3 {
+        if k.confidence > 0.3 && a.is_musical() {
             parts.push(format!("Sounds like {}", k.name));
         }
     }
@@ -491,6 +495,12 @@ fn r(x: f64, d: i32) -> Value {
 }
 
 impl Analysis {
+    /// True when the file looks like music (long, with a steady pulse) rather
+    /// than a sound effect; tempo and key are only meaningful then.
+    pub fn is_musical(&self) -> bool {
+        self.duration_s >= 6.0 && self.onsets.len() >= 12 && self.tempo_bpm.is_some() && self.tempo_confidence > 0.3
+    }
+
     /// Compact summary: the numbers an agent needs after every render.
     pub fn summary_json(&self) -> Value {
         let mut m = Map::new();
@@ -506,11 +516,13 @@ impl Analysis {
                 m.insert("pitch".into(), json!(format!("{} ({:.0} Hz)", p.note, p.hz)));
             }
         }
-        if let Some(t) = self.tempo_bpm {
-            m.insert("tempo_bpm".into(), r(t, 1));
-        }
-        if let Some(k) = &self.key {
-            m.insert("key".into(), json!(k.name));
+        if self.is_musical() {
+            if let Some(t) = self.tempo_bpm {
+                m.insert("tempo_bpm".into(), r(t, 1));
+            }
+            if let Some(k) = &self.key {
+                m.insert("key".into(), json!(k.name));
+            }
         }
         m.insert("description".into(), json!(self.description));
         m.insert("issues".into(), Value::Array(self.issues.iter().map(|i| i.to_json()).collect()));

@@ -1,0 +1,49 @@
+kind: score
+title: Ambient exploration
+description: Slow, spacious exploration music - warm pad, sparse bells, harp arpeggios. Loops cleanly.
+tempo: 64
+key: D dorian
+humanize: {timing_ms: 12, velocity: 0.08}
+tail: 8
+instruments:
+  pad: {patch: builtin:instruments/pad_warm, params: {attack: 1.8, cutoff: 2200}, gain_db: -3, sends: {hall: -6}}
+  choir: {patch: builtin:instruments/pad_choir, gain_db: -8, sends: {hall: -3}}
+  harp: {patch: builtin:instruments/pluck_harp, params: {brightness: 0.35, sustain: 4}, gain_db: -2, pan: -0.3, sends: {hall: -6, echo: -10}}
+  bell: {patch: builtin:instruments/bell_fm, gain_db: -2, pan: 0.25, sends: {hall: -3, echo: -6}}
+  sub: {patch: builtin:instruments/bass_sub, params: {warmth: 0.2}, gain_db: -8}
+buses:
+  hall: {fx: [{type: reverb, decay: 6, size: 2.2, damping: 4500, predelay_ms: 30, mix: 1}]}
+  echo: {fx: [{type: delay, time: 0.703, feedback: 0.45, damp: 3000, mix: 1, pingpong: true}]}
+master: {lufs: -18}
+patterns:
+  pad_a: {chords: "Dm9:8 Gadd9:8 Am7:8 Fmaj7:8", octave: 3}
+  choir_a: {chords: "Dm:8 G:8 Am:8 F:8", octave: 4, vel: 0.6}
+  harp_a: {chords: "Dm9:8 Gadd9:8 Am7:8 Fmaj7:8", octave: 3, style: arp_updown, rate: 1, vel: 0.6, gate: 2}
+  sub_a: {chords: "Dm:8 G:8 Am:8 F:8", octave: 2, style: root}
+  bell_a:
+    notes:
+      - "A4:3 _:1"
+      - "F4:2 E4:2"
+      - "D4:3 _:1"
+      - "E4:2 G4:2"
+      - "A4:3 B4:1"
+      - "C5:2 A4:2"
+      - "G4:4"
+      - "_:4"
+    vel: 0.7
+  bell_b:
+    notes:
+      - "D5:3 C5:1"
+      - "A4:4"
+      - "B4:2 G4:2"
+      - "A4:4"
+      - "F4:2 A4:2"
+      - "C5:3 B4:1"
+      - "A4:4"
+      - "_:4"
+    vel: 0.65
+sections:
+  intro: {bars: 8, tracks: {pad: pad_a, sub: sub_a}}
+  a: {bars: 8, tracks: {pad: pad_a, sub: sub_a, harp: harp_a, bell: bell_a}}
+  b: {bars: 8, tracks: {pad: pad_a, sub: sub_a, harp: harp_a, bell: bell_b, choir: choir_a}}
+arrangement: [intro, a, b]

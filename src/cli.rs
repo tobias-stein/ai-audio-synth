@@ -142,6 +142,12 @@ struct RenderCommon {
     /// Skip the measurement step (faster)
     #[arg(long)]
     no_analysis: bool,
+    /// Patches: skip normalization and keep the level the graph produces
+    #[arg(long)]
+    raw: bool,
+    /// Patches: report the level of every node, to see which layer is loud or silent
+    #[arg(long)]
+    probe: bool,
 }
 
 #[derive(Args)]
@@ -472,12 +478,18 @@ fn cmd_render(source: &str, c: &RenderCommon) -> Result<Output> {
             let profile = c.profile.clone().or(patch.profile.clone());
             for v in 0..c.variations {
                 let seed = base_seed + v as u64;
-                let asset = render_patch(&patch, &AssetOpts { sr: c.sr, oversample: os, seed, params: params.clone(), duration: c.duration, force_loop: c.looped, normalize: None })?;
+                let asset = render_patch(&patch, &AssetOpts { sr: c.sr, oversample: os, seed, params: params.clone(), duration: c.duration, force_loop: c.looped, normalize: if c.raw { Some(crate::graph::Normalize::None) } else { None }, probe: c.probe })?;
                 let suffix = if c.variations > 1 { format!("_{:02}", v + 1) } else { String::new() };
                 let path = out_path(&c.output, &stem, &suffix);
                 let mut rep = write_and_report(&path, &asset.sig, c.sr, fmt, asset.loop_points, !c.no_analysis, profile.as_deref(), json!({ "seed": seed }))?;
                 if !asset.warnings.is_empty() {
                     rep.json["warnings"] = json!(asset.warnings);
+                }
+                if c.probe {
+                    rep.json["node_levels"] = json!({
+                        "note": "level of each node's output before final normalization; -240 means silent. Compare layers feeding a mix to judge their balance.",
+                        "nodes": asset.levels.iter().map(|l| json!({ "node": l.name, "type": l.node_type, "peak_db": round_to(l.peak_db, 1), "rms_db": round_to(l.rms_db, 1), "stereo": l.stereo })).collect::<Vec<_>>(),
+                    });
                 }
                 lint_failed |= rep.lint_failed;
                 outputs.push(rep.json);
@@ -585,7 +597,7 @@ fn cmd_validate(source: &str) -> Result<Output> {
                 "valid": true,
                 "nodes": p.nodes.iter().map(|n| json!({"name": n.name, "type": n.spec.name})).collect::<Vec<_>>(),
                 "params": p.params.iter().map(|x| json!({"name": x.name, "default": x.default, "min": x.min, "max": x.max, "doc": x.doc})).collect::<Vec<_>>(),
-                "duration_s": p.duration,
+                "duration_s": p.duration_with(&[])?,
                 "loop": p.loop_crossfade.is_some(),
                 "profile": p.profile,
                 "note": "valid means the document is well-formed; render it to check how it sounds",
@@ -616,8 +628,8 @@ fn entry_meta(e: &library::Entry) -> Value {
             if !p.params.is_empty() {
                 m["params"] = Value::Array(p.params.iter().map(|x| json!({ "name": x.name, "default": x.default, "min": x.min, "max": x.max, "doc": x.doc })).collect());
             }
-            if let Some(d) = p.duration {
-                m["duration_s"] = json!(d);
+            if let Ok(Some(d)) = p.duration_with(&[]) {
+                m["duration_s"] = json!(round_to(d, 3));
             }
             if let Some(pr) = p.profile {
                 m["profile"] = json!(pr);
@@ -897,6 +909,8 @@ fn parse_pack(d: &Doc) -> Result<PackSpec> {
                 sections: flag("sections"),
                 profile: get_str(ao, "profile").map_err(|e| e.within(&path))?.map(String::from),
                 no_analysis: false,
+                probe: false,
+                raw: false,
             },
         });
     }

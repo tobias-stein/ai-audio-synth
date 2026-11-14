@@ -1,0 +1,13 @@
+# A pack renders many assets in one go and writes manifest.json describing them.
+# Run it with:  aas pack pack_demo.yaml -o out/
+kind: pack
+name: demo_pack
+defaults: {sr: 48000, bits: 24, quality: standard}
+assets:
+  - {id: ui_click, source: builtin:sfx/ui_click, variations: 3}
+  - {id: ui_confirm, source: builtin:sfx/ui_confirm}
+  - {id: explosion_big, source: builtin:sfx/explosion, set: {size: 1.0}, variations: 2}
+  - {id: sword_swing, source: builtin:sfx/sword_swing, variations: 4}
+  - {id: wind_loop, source: builtin:sfx/wind}
+  - {id: victory, source: builtin:examples/victory_stinger, profile: stinger}
+  - {id: menu_music, source: builtin:examples/menu_theme, loop: true}

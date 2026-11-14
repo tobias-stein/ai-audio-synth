@@ -1,0 +1,16 @@
+description: Positive two-note confirmation chime (accept, purchase, quest complete).
+category: ui
+profile: ui
+duration: 0.6
+params:
+  pitch: {default: 880, min: 300, max: 2500, doc: "pitch of the first note in Hz"}
+  interval: {default: 7, min: 1, max: 12, doc: "semitones up to the second note (7 = fifth, 4 = major third)"}
+nodes:
+  e1: {type: env, points: [[0, 0], [0.004, 1], [0.28, 0]], curve: exp}
+  e2: {type: env, points: [[0, 0], [0.085, 0], [0.09, 1], [0.5, 0]], curve: exp}
+  n1: {type: osc, wave: sine, freq: pitch, amp: e1}
+  n1h: {type: osc, wave: sine, freq: "pitch * 3", amp: "e1 * e1 * 0.15"}
+  n2: {type: osc, wave: sine, freq: "pitch * semi(interval)", amp: e2}
+  n2h: {type: osc, wave: sine, freq: "pitch * semi(interval) * 3", amp: "e2 * e2 * 0.15"}
+  sum: {type: mix, inputs: [n1, n1h, n2, n2h]}
+  out: {type: reverb, in: sum, decay: 0.35, size: 0.4, mix: 0.12, predelay_ms: 0}

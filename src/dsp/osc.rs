@@ -65,16 +65,22 @@ fn wave_sample(wave: Wave, t: f64, dt: f64, pw: f64) -> f64 {
             let pw = if wave == Wave::Square { 0.5 } else { pw.clamp(0.02, 0.98) };
             let mut v = if t < pw { 1.0 } else { -1.0 };
             v += polyblep(t, dt);
-            let t2 = t + 1.0 - pw;
-            v -= polyblep(t2 - t2.floor(), dt);
+            let mut t2 = t + 1.0 - pw;
+            if t2 >= 1.0 {
+                t2 -= 1.0;
+            }
+            v -= polyblep(t2, dt);
             // remove the DC offset a non-50% pulse carries
             v - (2.0 * pw - 1.0)
         }
         Wave::Triangle => {
             let mut v = 4.0 * (t - 0.5).abs() - 1.0;
             v -= 4.0 * dt * polyblamp(t, dt);
-            let t2 = t + 0.5;
-            v += 4.0 * dt * polyblamp(t2 - t2.floor(), dt);
+            let mut t2 = t + 0.5;
+            if t2 >= 1.0 {
+                t2 -= 1.0;
+            }
+            v += 4.0 * dt * polyblamp(t2, dt);
             v
         }
     }
@@ -137,7 +143,11 @@ pub fn osc(a: &OscArgs) -> Sig {
                 r[i] += s * gr;
             }
             ph += inc;
-            ph -= ph.floor();
+            if ph >= 1.0 {
+                ph -= 1.0;
+            } else if ph < 0.0 {
+                ph += 1.0;
+            }
         }
     }
     if stereo {
@@ -164,7 +174,9 @@ pub fn additive(freq: &P, partials: &[(f64, f64, f64)], sr: f64, n: usize, nyqui
                 *o += (TAU * ph).sin() * env;
             }
             ph += f / sr;
-            ph -= ph.floor();
+            if ph >= 1.0 {
+                ph -= ph.floor();
+            }
             env *= k;
         }
     }
@@ -213,14 +225,18 @@ pub fn noise(color: NoiseColor, sr: f64, n: usize, seed: u64) -> Vec<f64> {
                 .collect()
         }
         NoiseColor::Brown => {
-            // Leaky integrator with a 20 Hz corner, scaled to about 0.3 RMS.
+            // Leaky integrator (-6 dB/octave) with the infrasonic part removed,
+            // scaled to about 0.3 RMS.
             let a = 1.0 - TAU * 20.0 / sr;
-            let k = 0.3 * ((1.0 - a * a) * 3.0).sqrt();
-            let mut y = 0.0;
+            let k = 0.36 * ((1.0 - a * a) * 3.0).sqrt();
+            let hp = 1.0 - TAU * 25.0 / sr;
+            let (mut y, mut x1, mut h) = (0.0, 0.0, 0.0);
             (0..n)
                 .map(|_| {
                     y = a * y + k * rng.bipolar();
-                    y
+                    h = y - x1 + hp * h;
+                    x1 = y;
+                    h
                 })
                 .collect()
         }

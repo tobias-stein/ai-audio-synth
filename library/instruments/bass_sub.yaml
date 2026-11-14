@@ -1,0 +1,13 @@
+description: Deep, clean sub bass with a touch of harmonics so it stays audible on small speakers.
+category: bass
+tail: 0.25
+duration: 0.79
+gate: 0.39
+params:
+  warmth: {default: 0.4, min: 0, max: 1, doc: "amount of added harmonics"}
+nodes:
+  env: {type: adsr, attack: 0.006, decay: 0.15, sustain: 0.85, release: 0.12}
+  sub: {type: osc, wave: sine, freq: freq}
+  harm: {type: osc, wave: triangle, freq: "freq * 2", amp: "0.25 * warmth"}
+  sat: {type: distort, in: "(sub + harm) * env", drive_db: "3 + 9 * warmth", shape: tube}
+  out: {type: lowpass, in: "sat * 0.32", cutoff: 1800}

@@ -1,0 +1,16 @@
+description: Fast blade or staff swing through the air, with an optional metallic ring.
+category: weapon
+profile: whoosh
+duration: "0.25 + 0.4 / speed"
+params:
+  speed: {default: 1, min: 0.5, max: 2, doc: "swing speed: higher is shorter and brighter"}
+  ring: {default: 0.3, min: 0, max: 1, doc: "amount of metallic blade ring (0 for staffs and fists)"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.4, 1], [1, 0]], curve: smooth, time_scale: "0.32 / speed"}
+  center: {type: env, points: [[0, 400], [0.45, 2200], [1, 600]], curve: smooth, time_scale: "0.32 / speed"}
+  air: {type: noise, color: white, stereo: true}
+  whoosh: {type: bandpass, in: air, cutoff: "center * speed * rand(0.9, 1.1)", q: 2.5}
+  metal_exc: {type: noise, amp: "env * env"}
+  metal: {type: modal, in: metal_exc, modes: metal, freq: "1900 * rand(0.9, 1.1)", decay: 0.35, damping: 0.2, amp: "0.004 * ring"}
+  sweep_pan: {type: pan, in: "whoosh * env", pos: "(t * speed / 0.32 - 0.5) * 1.2 * choose(-1, 1)"}
+  out: {type: mix, inputs: [sweep_pan, metal]}

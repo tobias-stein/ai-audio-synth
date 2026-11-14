@@ -1,0 +1,12 @@
+description: Rim shot / side stick - a short woody click.
+category: drums
+duration: 0.2
+tail: 0.15
+params:
+  pitch: {default: 800, min: 300, max: 2000, doc: "pitch in Hz"}
+nodes:
+  hit_env: {type: env, points: [[0, 1], [0.003, 0]], curve: exp}
+  hit: {type: noise, amp: hit_env}
+  wood: {type: modal, in: hit, modes: [[1, 1, 1], [1.7, 0.6, 0.7], [2.9, 0.4, 0.5]], freq: "pitch * rand(0.98, 1.02)", decay: 0.06, damping: 0.8}
+  click: {type: highpass, in: hit, cutoff: 3000}
+  out: {type: gain, in: "wood + click * 0.5", db: -12}

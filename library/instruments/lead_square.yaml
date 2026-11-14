@@ -1,0 +1,15 @@
+description: Hollow pulse-wave lead with slow pulse-width movement. Retro melodies and plucky hooks.
+category: lead
+tail: 0.3
+duration: 1.11
+gate: 0.66
+params:
+  width: {default: 0.3, min: 0.1, max: 0.5, doc: "pulse width: 0.5 = hollow square, 0.1 = thin and nasal"}
+nodes:
+  env: {type: adsr, attack: 0.005, decay: 0.12, sustain: 0.75, release: 0.15}
+  pwm: {type: lfo, rate: 0.7, amp: 0.08}
+  vib_depth: {type: env, points: [[0, 0], [0.2, 0], [0.5, 1]], curve: smooth}
+  vib: {type: lfo, rate: 6, amp: "0.005 * vib_depth"}
+  pulse: {type: osc, wave: pulse, pw: "width + pwm", freq: "freq * (1 + vib)"}
+  filt: {type: lowpass, in: pulse, cutoff: "2500 + 5000 * vel", q: 0.9}
+  out: {type: gain, in: "filt * env", db: -13}

@@ -1,0 +1,14 @@
+description: Wooden mallet percussion (marimba/kalimba character) from a modal bar model.
+category: mallet
+tail: 1.2
+duration: 1.5
+gate: 0.15
+params:
+  hardness: {default: 0.5, min: 0, max: 1, doc: "0 = soft yarn mallet, 1 = hard stick"}
+nodes:
+  strike_env: {type: env, points: [[0, 1], [0.004, 0]], curve: exp}
+  strike: {type: noise, color: pink, amp: "strike_env * 3"}
+  strike_f: {type: lowpass, in: strike, cutoff: "1200 + 8000 * hardness * vel"}
+  bar: {type: modal, in: strike_f, modes: marimba, freq: freq, decay: "1.4 * (220 / freq) ^ 0.5", damping: 0.9}
+  tube: {type: modal, in: strike_f, modes: [[1, 1, 1]], freq: freq, decay: 0.5, amp: 0.5}
+  out: {type: gain, in: "bar + tube", db: -23}

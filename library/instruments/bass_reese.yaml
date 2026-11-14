@@ -1,0 +1,17 @@
+description: Wide, growling detuned bass (reese) for dark electronic, drum and bass and tension cues.
+category: bass
+tail: 0.35
+duration: 0.83
+gate: 0.33
+params:
+  detune: {default: 28, min: 5, max: 80, doc: "detune between the two oscillators in cents"}
+  cutoff: {default: 700, min: 100, max: 6000, doc: "filter cutoff in Hz"}
+nodes:
+  env: {type: adsr, attack: 0.01, decay: 0.2, sustain: 0.9, release: 0.2}
+  a: {type: osc, wave: saw, freq: "freq * cents(detune * 0.5)"}
+  b: {type: osc, wave: saw, freq: "freq * cents(-detune * 0.5)"}
+  sub: {type: osc, wave: sine, freq: "freq * 0.5", amp: 0.6}
+  move: {type: lfo, wave: smooth, rate: 0.6}
+  filt: {type: lowpass, in: "a + b", cutoff: "cutoff * (1 + 0.4 * move)", q: 1.8, slope: "24"}
+  dirt: {type: distort, in: "(filt + sub) * env", drive_db: 6, shape: tanh}
+  out: {type: gain, in: dirt, db: -12}

@@ -1,0 +1,16 @@
+description: Struck wood - knocks, crate hits, arrows landing, wooden doors.
+category: impact
+profile: impact
+duration: 0.5
+params:
+  pitch: {default: 420, min: 60, max: 1200, doc: "resonant pitch in Hz: low = large hollow object"}
+  hardness: {default: 0.6, min: 0, max: 1, doc: "0 = dull thump, 1 = sharp knock"}
+nodes:
+  hit_env: {type: env, points: [[0, 1], [0.006, 0]], curve: exp}
+  hit: {type: noise, color: pink, amp: "hit_env * 3"}
+  hit_f: {type: lowpass, in: hit, cutoff: "800 + 7000 * hardness"}
+  body: {type: modal, in: hit_f, modes: wood, freq: "pitch * rand(0.93, 1.07)", decay: 0.14, damping: 1.0, amp: 0.35}
+  cavity: {type: modal, in: hit_f, modes: [[1, 1, 1], [1.8, 0.4, 0.6]], freq: "pitch * 0.5", decay: 0.16, damping: 1.5, amp: 0.07}
+  sum: {type: mix, inputs: [body, cavity, hit_f], gains_db: [0, 0, -10]}
+  punch: {type: transient, in: sum, attack_db: 4}
+  out: {type: reverb, in: punch, decay: 0.3, size: 0.4, mix: 0.1, predelay_ms: 0}

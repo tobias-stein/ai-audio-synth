@@ -1,0 +1,15 @@
+description: Clear FM bell. Chimes, celesta-like sparkle, mystical accents.
+category: keys
+tail: 2.5
+duration: 2.89
+gate: 0.24
+params:
+  ratio: {default: 3.5, min: 1, max: 9, doc: "modulator ratio: 3.5 = classic bell, 1.41 = metallic, 7 = glassy"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.002, 1], [3.5, 0]], curve: exp}
+  index: {type: env, points: [[0, 1], [1.5, 0.05]], curve: exp}
+  m: {type: osc, wave: sine, freq: "freq * ratio"}
+  c: {type: osc, wave: sine, freq: freq, pm: "m * index * (1 + 2 * vel)"}
+  shimmer: {type: osc, wave: sine, freq: "freq * 2.001", amp: 0.3}
+  rel: {type: adsr, attack: 0.001, decay: 0.01, sustain: 1, release: 2.0}
+  out: {type: gain, in: "(c + shimmer) * env * rel", db: -11}

@@ -1,0 +1,11 @@
+description: Shaker / maraca - a soft burst of bright noise for sixteenth-note grooves.
+category: drums
+duration: 0.2
+tail: 0.15
+params:
+  tone: {default: 6500, min: 3000, max: 10000, doc: "center frequency in Hz"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.012, 1], [0.09, 0]], curve: exp}
+  grains: {type: noise, stereo: true, amp: env}
+  band: {type: bandpass, in: grains, cutoff: "tone * rand(0.92, 1.08)", q: 1.5}
+  out: {type: gain, in: band, db: -6}

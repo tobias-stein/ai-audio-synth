@@ -1,0 +1,18 @@
+description: Rising major arpeggio for power-ups, level-ups and upgrades.
+category: pickup
+profile: oneshot
+duration: 1.8
+params:
+  pitch: {default: 262, min: 100, max: 800, doc: "starting pitch in Hz"}
+  step: {default: 0.055, min: 0.02, max: 0.15, doc: "seconds per arpeggio note"}
+nodes:
+  # note index climbs with time; mod/floor pick a major arpeggio (0, 4, 7 semitones) per octave
+  idx: {type: expr, expr: "min(floor(t / step), 11)"}
+  semis: {type: expr, expr: "12 * floor(idx / 3) + 4 * min(mod(idx, 3), 1) + 3 * max(mod(idx, 3) - 1, 0)"}
+  env: {type: env, points: [[0, 0], [0.005, 1], [0.66, 0.9], [1.0, 0]]}
+  vib: {type: lfo, rate: 6, amp: 0.01}
+  a: {type: osc, wave: pulse, pw: 0.3, freq: "pitch * semi(semis) * (1 + vib)", amp: env}
+  b: {type: osc, wave: saw, freq: "pitch * semi(semis) * 2.005", amp: "env * 0.4"}
+  filt: {type: lowpass, in: "a + b", cutoff: "1500 + 5000 * min(t, 1)", q: 1.5}
+  echo: {type: delay, in: filt, time: 0.11, feedback: 0.3, mix: 0.2, pingpong: true}
+  out: {type: reverb, in: echo, decay: 0.8, mix: 0.12}

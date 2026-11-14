@@ -1,0 +1,15 @@
+description: Gentle three-note bell arpeggio for notifications and messages.
+category: ui
+profile: ui
+duration: 1.0
+params:
+  pitch: {default: 1047, min: 400, max: 2500, doc: "pitch of the first note in Hz"}
+nodes:
+  e1: {type: env, points: [[0, 0], [0.003, 1], [0.5, 0]], curve: exp}
+  e2: {type: env, points: [[0, 0], [0.1, 0], [0.103, 1], [0.65, 0]], curve: exp}
+  e3: {type: env, points: [[0, 0], [0.2, 0], [0.203, 1], [0.9, 0]], curve: exp}
+  b1: {type: additive, freq: pitch, partials: [[1, 1], [2.76, 0.25], [5.4, 0.08]], amp: e1}
+  b2: {type: additive, freq: "pitch * semi(4)", partials: [[1, 1], [2.76, 0.25], [5.4, 0.08]], amp: e2}
+  b3: {type: additive, freq: "pitch * semi(7)", partials: [[1, 1], [2.76, 0.25], [5.4, 0.08]], amp: e3}
+  sum: {type: mix, inputs: [b1, b2, b3]}
+  out: {type: reverb, in: sum, decay: 0.6, size: 0.5, mix: 0.15, predelay_ms: 0}

@@ -1,0 +1,19 @@
+description: Looping wind ambience with slowly varying gusts.
+category: ambience
+profile: ambience-loop
+duration: 14
+loop: {crossfade: 3}
+normalize: {lufs: -26}
+params:
+  strength: {default: 0.5, min: 0, max: 1, doc: "0 = light breeze, 1 = storm"}
+  whistle: {default: 0.3, min: 0, max: 1, doc: "amount of high whistling through gaps"}
+nodes:
+  gust: {type: lfo, wave: smooth, rate: 0.23, unipolar: true}
+  gust2: {type: lfo, wave: smooth, rate: 0.61, unipolar: true}
+  src: {type: noise, color: pink, stereo: true}
+  body: {type: bandpass, in: src, cutoff: "250 + 500 * strength + 500 * gust", q: 1.2}
+  low_src: {type: noise, color: brown, stereo: true}
+  low: {type: lowpass, in: low_src, cutoff: "150 + 150 * gust2"}
+  wh_src: {type: noise, stereo: true}
+  wh: {type: bandpass, in: wh_src, cutoff: "1500 + 900 * gust2 + 500 * gust", q: 14}
+  out: {type: expr, expr: "body * (0.35 + 0.65 * gust) * 3 + low * (0.5 + strength) * (0.5 + 0.5 * gust2) + wh * whistle * gust * gust * 0.5"}

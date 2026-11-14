@@ -1,0 +1,15 @@
+description: Short, bright synth pluck for arpeggios and rhythmic patterns.
+category: pluck
+tail: 0.6
+duration: 0.93
+gate: 0.18
+params:
+  cutoff: {default: 4000, min: 300, max: 14000, doc: "filter brightness in Hz"}
+  decay: {default: 0.3, min: 0.05, max: 2, doc: "how long each note rings, in seconds"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.002, 1], [1, 0]], curve: exp, time_scale: "decay * 1.6"}
+  fenv: {type: env, points: [[0, 1], [1, 0]], curve: exp, time_scale: decay}
+  saw: {type: osc, wave: saw, freq: freq, unison: 3, detune: 12, spread: 0.6}
+  sq: {type: osc, wave: square, freq: "freq * 2", amp: 0.3}
+  filt: {type: lowpass, in: "saw + sq", cutoff: "200 + cutoff * fenv * (0.5 + 0.5 * vel)", q: 2.2, slope: "24"}
+  out: {type: gain, in: "filt * env", db: -15}

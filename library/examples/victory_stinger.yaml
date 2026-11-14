@@ -1,0 +1,29 @@
+kind: score
+title: Victory stinger
+description: Short triumphant fanfare for winning, level complete or a major reward.
+tempo: 120
+key: C major
+tail: 4
+instruments:
+  brass: {patch: builtin:instruments/brass_synth, params: {brightness: 0.8}, sends: {hall: -7}}
+  strings: {patch: builtin:instruments/pad_strings, params: {attack: 0.05, brightness: 0.7}, gain_db: -2, sends: {hall: -7}}
+  bells: {patch: builtin:instruments/bell_fm, gain_db: -8, sends: {hall: -5}}
+  perc:
+    kit:
+      timp: {patch: builtin:drums/taiko, params: {pitch: 65, decay: 1.2}}
+      crash: builtin:drums/crash
+    sends: {hall: -9}
+buses:
+  hall: {fx: [{type: reverb, decay: 2.5, size: 1.6, mix: 1}]}
+master: {lufs: -15}
+patterns:
+  fanfare: {notes: "C4:0.5 E4:0.5 G4:0.5 C5:1.5 B4:0.5 C5:0.5 | D5:1 D5:0.5 E5:0.5 F5:1 G5:1", vel: 0.9}
+  final: {notes: "E5+G5+C6:8", vel: 1}
+  str_a: {chords: "C:4 G:4", octave: 3, voicing: open}
+  str_b: {chords: "C:8", octave: 3, voicing: open}
+  bells_b: {chords: "C:8", octave: 5, style: arp_up, rate: 0.25, vel: 0.6}
+  roll: {step: 0.25, drums: {timp: "x.......x.....xx"}}
+  hit: {drums: {timp: "X...............", crash: "X..............."}}
+sections:
+  a: {bars: 2, tracks: {brass: fanfare, strings: str_a, perc: roll}}
+  b: {bars: 2, tracks: {brass: final, strings: str_b, bells: bells_b, perc: hit}}

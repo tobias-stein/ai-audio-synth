@@ -934,32 +934,61 @@ pub fn render_score(score: &Score, o: &ScoreOpts, mut stem_sink: Option<&mut dyn
         note_count += hits.len();
         let mut track = Sig::silence(total, true);
         let mut piece_tracks: HashMap<usize, Sig> = HashMap::new();
-        for (hi, h) in hits.iter().enumerate() {
-            let note_seed = seed ^ hash_str(&inst.name).wrapping_add((hi as u64).wrapping_mul(0x9E37_79B9));
+        // Identical notes are rendered a few times with different seeds and then
+        // reused in rotation: natural variation without re-rendering every hit.
+        let mut cache: HashMap<(Option<usize>, i32, u32, u64), Vec<Rc<Sig>>> = HashMap::new();
+        for h in hits.iter() {
             let offset = (h.at * srf).round() as usize;
             if offset >= total {
                 continue;
             }
-            match (&inst.voice, h.piece) {
-                (Voice::Patch { patch, params }, _) => {
-                    if !(0..=127).contains(&h.midi) {
-                        continue;
+            let vel = (h.vel * 24.0).round().max(1.0) / 24.0;
+            let gate_ms = (h.dur * 1000.0).round() as u64;
+            let key = (h.piece, h.midi, (vel * 24.0).round() as u32, gate_ms);
+            let variants = if h.piece.is_some() { 4 } else { 2 };
+            let entry = cache.entry(key).or_default();
+            let (uses, have) = (entry.len(), entry.iter().filter(|s| !s.is_empty()).count());
+            let _ = uses;
+            let sig: Rc<Sig> = if have < variants {
+                let note_seed = seed ^ hash_str(&inst.name) ^ (h.midi as u64).wrapping_mul(0x9E37_79B9) ^ (gate_ms << 20) ^ ((key.2 as u64) << 40) ^ (h.piece.unwrap_or(0) as u64).wrapping_mul(0xC2B2_AE35) ^ ((have as u64 + 1) << 56);
+                let s = match (&inst.voice, h.piece) {
+                    (Voice::Patch { patch, params }, _) => {
+                        if !(0..=127).contains(&h.midi) {
+                            continue;
+                        }
+                        render_note(patch, Some(midi_to_hz(h.midi as f64)), vel, gate_ms as f64 / 1000.0, note_seed, sr, o.oversample, params).map_err(|e| e.within(&format!("instruments.{}.patch", inst.name)))?
                     }
-                    let s = render_note(patch, Some(midi_to_hz(h.midi as f64)), h.vel, h.dur, note_seed, sr, o.oversample, params).map_err(|e| e.within(&format!("instruments.{}.patch", inst.name)))?;
-                    mix_clipped(&mut track, &s, offset, 1.0, total);
-                }
+                    (Voice::Kit(pieces), Some(pi)) => {
+                        let piece = &pieces[pi];
+                        let s = render_note(&piece.patch, None, vel, gate_ms as f64 / 1000.0, note_seed, sr, o.oversample, &piece.params).map_err(|e| e.within(&format!("instruments.{}.kit.{}", inst.name, piece.name)))?;
+                        if piece.pan != 0.0 {
+                            pan_fx(&s, &P::C(piece.pan))
+                        } else {
+                            s
+                        }
+                    }
+                    _ => continue,
+                };
+                let rc = Rc::new(s);
+                entry.push(rc.clone());
+                rc
+            } else {
+                // rotate through the rendered variants
+                let rc = entry.remove(0);
+                entry.push(rc.clone());
+                rc
+            };
+            match (&inst.voice, h.piece) {
                 (Voice::Kit(pieces), Some(pi)) => {
                     let piece = &pieces[pi];
-                    let s = render_note(&piece.patch, None, h.vel, h.dur, note_seed, sr, o.oversample, &piece.params).map_err(|e| e.within(&format!("instruments.{}.kit.{}", inst.name, piece.name)))?;
-                    let s = if piece.pan != 0.0 { pan_fx(&s, &P::C(piece.pan)) } else { s };
-                    mix_clipped(&mut track, &s, offset, piece.gain, total);
+                    mix_clipped(&mut track, &sig, offset, piece.gain, total);
                     let key_name = format!("{}.{}", inst.name, piece.name);
                     if duck_sources.contains(&key_name.as_str()) {
                         let pt = piece_tracks.entry(pi).or_insert_with(|| Sig::silence(total, false));
-                        mix_clipped(pt, &Sig::mono(s.to_mono()), offset, piece.gain, total);
+                        mix_clipped(pt, &Sig::mono(sig.to_mono()), offset, piece.gain, total);
                     }
                 }
-                _ => {}
+                _ => mix_clipped(&mut track, &sig, offset, 1.0, total),
             }
         }
         if let Voice::Kit(pieces) = &inst.voice {

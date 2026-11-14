@@ -1,0 +1,19 @@
+description: Crash cymbal for section starts and accents.
+category: drums
+duration: 2.6
+tail: 2.5
+params:
+  decay: {default: 1.6, min: 0.4, max: 5, doc: "length in seconds"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.002, 1], [1, 0]], curve: exp, time_scale: "decay * 1.5"}
+  o1: {type: osc, wave: square, freq: 317}
+  o2: {type: osc, wave: square, freq: 465}
+  o3: {type: osc, wave: square, freq: 611}
+  o4: {type: osc, wave: square, freq: 829}
+  o5: {type: osc, wave: square, freq: 1087}
+  o6: {type: osc, wave: square, freq: 1443}
+  ring: {type: expr, expr: "(o1 * o2 + o3 * o4 + o5 * o6) * 0.4"}
+  wash_src: {type: noise, stereo: true}
+  metal: {type: highpass, in: "ring + wash_src * 0.8", cutoff: "3000 + 3000 * env", slope: "24"}
+  bright: {type: highshelf, in: metal, freq: 8000, gain_db: "-12 * (1 - env)"}
+  out: {type: gain, in: "bright * env", db: -9}

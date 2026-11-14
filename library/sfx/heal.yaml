@@ -1,0 +1,18 @@
+description: Soft rising shimmer for healing, buffs and blessings.
+category: magic
+profile: whoosh
+duration: 3.2
+params:
+  pitch: {default: 523, min: 200, max: 1200, doc: "root pitch of the chord in Hz"}
+nodes:
+  swell: {type: env, points: [[0, 0], [0.5, 1], [1.2, 0.6], [2.0, 0]], curve: smooth}
+  rise: {type: sweep, from: 0.97, to: 1.0, time: 0.6, curve: lin}
+  c1: {type: osc, wave: sine, freq: "pitch * rise"}
+  c2: {type: osc, wave: sine, freq: "pitch * semi(4) * rise"}
+  c3: {type: osc, wave: sine, freq: "pitch * semi(7) * rise"}
+  c4: {type: osc, wave: sine, freq: "pitch * 2 * rise", amp: 0.5}
+  chord: {type: expr, expr: "(c1 + c2 + c3 + c4) * swell * 0.25"}
+  sparkle_src: {type: dust, density: "40 * swell"}
+  sparkle: {type: modal, in: sparkle_src, modes: glass, freq: "pitch * 4", decay: 0.25, damping: 0.3, amp: 0.3}
+  wide: {type: chorus, in: "chord + sparkle", rate: 0.6, depth_ms: 5, mix: 0.5}
+  out: {type: reverb, in: wide, decay: 1.4, size: 1.2, mix: 0.3}

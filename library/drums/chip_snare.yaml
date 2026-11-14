@@ -1,0 +1,9 @@
+description: 8-bit console snare - a short burst of low-resolution noise.
+category: drums
+duration: 0.2
+tail: 0.15
+nodes:
+  env: {type: env, points: [[0, 1], [0.13, 0]], curve: exp}
+  hiss: {type: noise}
+  crunchy: {type: bitcrush, in: hiss, bits: 3, rate: 9000}
+  out: {type: gain, in: "crunchy * env", db: -11}

@@ -25,3 +25,7 @@ codegen-units = 4
 
 [profile.dev]
 opt-level = 2
+
+[profile.profiling]
+inherits = "release"
+debug = true

@@ -1,0 +1,20 @@
+description: Looping engine or generator drone - vehicles, ships, machinery. Raise `rpm` for faster engines.
+category: scifi
+profile: sfx-loop
+duration: 4
+loop: {crossfade: 1}
+params:
+  rpm: {default: 1, min: 0.4, max: 4, doc: "engine speed multiplier: 1 = idle"}
+  roughness: {default: 0.5, min: 0, max: 1, doc: "0 = smooth electric whine, 1 = rattling combustion"}
+nodes:
+  wob: {type: lfo, wave: smooth, rate: 1.3}
+  f: {type: expr, expr: "48 * rpm * (1 + 0.01 * wob)"}
+  pulses: {type: osc, wave: pulse, pw: 0.2, freq: f}
+  sub: {type: osc, wave: sine, freq: "f * 0.5", amp: 0.8}
+  growl: {type: osc, wave: saw, freq: "f * 2.01", amp: 0.4}
+  rattle_src: {type: noise, color: pink}
+  rattle: {type: expr, expr: "rattle_src * (0.5 + 0.5 * pulses) * roughness * 2"}
+  body: {type: lowpass, in: "pulses * 0.7 + sub + growl + rattle", cutoff: "350 + 500 * rpm", q: 1.4}
+  res: {type: comb, in: body, freq: "110 * rpm", feedback: 0.5, damp: 2500}
+  drive: {type: distort, in: res, drive_db: "4 + 8 * roughness", shape: tube}
+  out: {type: chorus, in: drive, rate: 0.3, depth_ms: 2, mix: 0.25}

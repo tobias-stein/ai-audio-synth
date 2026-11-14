@@ -1,0 +1,16 @@
+description: Tuned tom drum. Set `pitch` per kit piece for high, mid and floor toms.
+category: drums
+duration: 0.7
+tail: 0.6
+params:
+  pitch: {default: 110, min: 50, max: 400, doc: "pitch in Hz: 80 floor, 120 mid, 180 high"}
+  decay: {default: 0.3, min: 0.08, max: 1.2, doc: "length in seconds"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.001, 1], [1, 0]], curve: exp, time_scale: "decay * 1.5"}
+  bend: {type: sweep, from: 1.7, to: 1, time: 0.06}
+  skin: {type: osc, wave: sine, freq: "pitch * bend", amp: env}
+  over: {type: osc, wave: sine, freq: "pitch * 1.59 * bend", amp: "env * env * 0.35"}
+  stick_env: {type: env, points: [[0, 1], [0.012, 0]], curve: exp}
+  stick: {type: noise, color: pink, amp: "stick_env * 2"}
+  stick_f: {type: bandpass, in: stick, cutoff: 3000, q: 0.8}
+  out: {type: gain, in: "skin + over + stick_f * 0.5", db: -7}

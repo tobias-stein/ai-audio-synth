@@ -1,0 +1,22 @@
+description: Synthetic gunshot - crack, body thump and a short room tail. Works as a layer under recorded gun samples or on its own for stylized games.
+category: weapon
+profile: weapon
+duration: "0.45 + 1.4 * room"
+params:
+  size: {default: 0.5, min: 0, max: 1, doc: "0 = small pistol, 1 = heavy rifle or cannon"}
+  room: {default: 0.3, min: 0, max: 1, doc: "amount of room reflection: 0 = dry, 1 = large hall"}
+nodes:
+  crack_env: {type: env, points: [[0, 0], [0.0004, 1], [0.012, 0.15], [0.05, 0]], curve: exp}
+  crack: {type: noise, amp: crack_env}
+  crack_f: {type: highpass, in: crack, cutoff: "2500 - 1200 * size"}
+  blast_env: {type: env, points: [[0, 1], [1, 0]], curve: exp, time_scale: "0.18 + 0.3 * size"}
+  blast_cut: {type: sweep, from: "9000 - 3000 * size", to: 300, time: "0.12 + 0.2 * size"}
+  blast: {type: noise, color: pink, amp: "blast_env * 2"}
+  blast_f: {type: lowpass, in: blast, cutoff: blast_cut, slope: "24"}
+  thump_env: {type: env, points: [[0, 1], [1, 0]], curve: exp, time_scale: "0.1 + 0.15 * size"}
+  thump_f: {type: sweep, from: "220 - 60 * size", to: "55 - 15 * size", time: 0.06}
+  thump: {type: osc, wave: sine, freq: thump_f, amp: "thump_env * (0.6 + 0.6 * size)"}
+  sum: {type: mix, inputs: [crack_f, blast_f, thump], gains_db: [-2, 0, 0]}
+  dirt: {type: distort, in: sum, drive_db: 10, shape: tanh}
+  punch: {type: transient, in: dirt, attack_db: 6, sustain_db: -2}
+  out: {type: reverb, in: punch, decay: "0.3 + 1.0 * room", size: "0.5 + 1.5 * room", damping: 5000, mix: "0.08 + 0.25 * room", predelay_ms: 8}

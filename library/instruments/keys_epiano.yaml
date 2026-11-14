@@ -1,0 +1,19 @@
+description: Mellow FM electric piano with a bell-like attack. Menus, calm exploration, lo-fi.
+category: keys
+tail: 0.8
+duration: 1.61
+gate: 0.66
+params:
+  bark: {default: 0.5, min: 0, max: 1, doc: "how much the tone bites when played hard"}
+nodes:
+  env: {type: adsr, attack: 0.002, decay: 1.8, sustain: 0.0, release: 0.35}
+  index: {type: env, points: [[0, 1], [0.6, 0.15]], curve: exp}
+  m1: {type: osc, wave: sine, freq: freq}
+  body: {type: osc, wave: sine, freq: freq, pm: "m1 * index * (0.6 + 2.4 * bark * vel)"}
+  tine_env: {type: env, points: [[0, 1], [0.25, 0]], curve: exp}
+  tine_mod: {type: osc, wave: sine, freq: "freq * 14"}
+  tine: {type: osc, wave: sine, freq: freq, pm: "tine_mod * tine_env * 0.9", amp: 0.5}
+  trem: {type: lfo, rate: 4.5, amp: 0.12}
+  dry: {type: expr, expr: "(body + tine) * env * (1 + trem)"}
+  wide: {type: pan, in: dry, pos: "0.35 * sin(t * 4.5 * tau)"}
+  out: {type: gain, in: wide, db: -9}

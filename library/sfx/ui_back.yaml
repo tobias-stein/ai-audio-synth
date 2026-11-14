@@ -1,0 +1,13 @@
+description: Soft descending blip for cancel, back and close.
+category: ui
+profile: ui
+duration: 0.18
+params:
+  pitch: {default: 700, min: 300, max: 2000, doc: "starting pitch in Hz"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.004, 1], [0.14, 0]], curve: exp}
+  drop: {type: sweep, from: 1, to: 0.5, time: 0.12}
+  tone: {type: osc, wave: sine, freq: "pitch * drop", amp: env}
+  air: {type: noise, color: pink, amp: "env * 0.2"}
+  airf: {type: bandpass, in: air, cutoff: "pitch * 3 * drop", q: 2}
+  out: {type: highpass, in: "tone + airf", cutoff: 250}

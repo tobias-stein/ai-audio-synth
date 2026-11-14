@@ -1,0 +1,12 @@
+description: Classic drum-machine cowbell.
+category: drums
+duration: 0.4
+tail: 0.35
+params:
+  pitch: {default: 540, min: 300, max: 1000, doc: "pitch in Hz"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.001, 1], [0.03, 0.4], [0.3, 0]], curve: exp}
+  a: {type: osc, wave: square, freq: pitch}
+  b: {type: osc, wave: square, freq: "pitch * 1.4815"}
+  band: {type: bandpass, in: "a + b", cutoff: "pitch * 1.6", q: 2.5}
+  out: {type: gain, in: "band * env", db: -9}

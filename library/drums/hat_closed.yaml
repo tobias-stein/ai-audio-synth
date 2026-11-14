@@ -1,0 +1,18 @@
+description: Tight closed hi-hat with a metallic tick.
+category: drums
+duration: 0.15
+tail: 0.12
+params:
+  decay: {default: 0.05, min: 0.015, max: 0.2, doc: "length in seconds"}
+  tone: {default: 1, min: 0.6, max: 1.6, doc: "pitch multiplier of the metallic partials"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.0005, 1], [1, 0]], curve: exp, time_scale: "decay * rand(0.9, 1.15)"}
+  o1: {type: osc, wave: square, freq: "205.3 * 2 * tone"}
+  o2: {type: osc, wave: square, freq: "304.4 * 2 * tone"}
+  o3: {type: osc, wave: square, freq: "369.6 * 2 * tone"}
+  o4: {type: osc, wave: square, freq: "522.7 * 2 * tone"}
+  o5: {type: osc, wave: square, freq: "540 * 2 * tone"}
+  o6: {type: osc, wave: square, freq: "800 * 2 * tone"}
+  hiss: {type: noise}
+  metal: {type: highpass, in: "(o1 + o2 + o3 + o4 + o5 + o6) * 0.25 + hiss * 0.6", cutoff: 7000, slope: "24"}
+  out: {type: gain, in: "metal * env", db: -6}

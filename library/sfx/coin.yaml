@@ -1,0 +1,14 @@
+description: Classic bright two-tone pickup for coins, gems and collectibles.
+category: pickup
+profile: oneshot
+duration: 0.6
+params:
+  pitch: {default: 988, min: 500, max: 2000, doc: "pitch of the first tone in Hz"}
+nodes:
+  e1: {type: env, points: [[0, 0], [0.002, 1], [0.07, 0.7], [0.075, 0]]}
+  e2: {type: env, points: [[0, 0], [0.075, 0], [0.078, 1], [0.5, 0]], curve: exp}
+  t1: {type: osc, wave: square, freq: "pitch * rand(0.99, 1.01)", amp: e1}
+  t2: {type: osc, wave: square, freq: "pitch * semi(5) * rand(0.99, 1.01)", amp: e2}
+  ring: {type: osc, wave: sine, freq: "pitch * semi(5) * 2", amp: "e2 * 0.4"}
+  filt: {type: lowpass, in: "t1 + t2", cutoff: 6000}
+  out: {type: reverb, in: "filt * 0.6 + ring", decay: 0.4, size: 0.4, mix: 0.1, predelay_ms: 0}

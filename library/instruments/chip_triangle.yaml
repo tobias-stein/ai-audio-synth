@@ -1,0 +1,10 @@
+description: 8-bit console triangle wave. Chiptune bass lines and soft flute-like leads.
+category: chip
+tail: 0.03
+duration: 0.7
+gate: 0.52
+nodes:
+  env: {type: adsr, attack: 0.001, decay: 0.01, sustain: 1, release: 0.015}
+  tri: {type: osc, wave: triangle, freq: freq}
+  steps: {type: bitcrush, in: tri, bits: 4, rate: 48000}
+  out: {type: gain, in: "steps * env", db: -9}

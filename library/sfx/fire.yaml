@@ -1,0 +1,22 @@
+description: Looping fire - crackles, pops and a low flickering roar. Campfires to burning buildings.
+category: ambience
+profile: ambience-loop
+duration: 12
+loop: {crossfade: 2.5}
+normalize: {lufs: -24}
+params:
+  size: {default: 0.4, min: 0, max: 1, doc: "0 = candle or small campfire, 1 = large blaze"}
+nodes:
+  flicker: {type: lfo, wave: smooth, rate: 3.1, unipolar: true}
+  flicker2: {type: lfo, wave: smooth, rate: 0.4, unipolar: true}
+  roar_src: {type: noise, color: brown, stereo: true}
+  roar: {type: bandpass, in: roar_src, cutoff: "160 + 300 * size + 120 * flicker", q: 0.6}
+  hiss_src: {type: noise, color: pink, stereo: true}
+  hiss: {type: highpass, in: hiss_src, cutoff: 3000}
+  crack_src: {type: dust, density: "8 + 30 * size + 10 * flicker2"}
+  crack: {type: bandpass, in: crack_src, cutoff: "2200 * rand(0.8, 1.2)", q: 1.5}
+  pop_src: {type: dust, density: "1.5 + 4 * size"}
+  pop: {type: modal, in: pop_src, modes: wood, freq: 500, decay: 0.03, damping: 1.2}
+  snaps: {type: distort, in: "crack * 2 + pop", drive_db: 10, shape: hard}
+  snaps_pan: {type: pan, in: snaps, pos: "0.6 * sin(t * 1.7)"}
+  out: {type: expr, expr: "roar * (0.5 + size) * (0.6 + 0.4 * flicker) * 2 + hiss * 0.15 * (0.5 + flicker) + snaps_pan * 0.5"}

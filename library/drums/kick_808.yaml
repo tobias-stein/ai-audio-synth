@@ -1,0 +1,13 @@
+description: Long, booming 808-style kick that doubles as a bass note.
+category: drums
+duration: 1.4
+tail: 1.3
+params:
+  pitch: {default: 46, min: 28, max: 80, doc: "resting pitch in Hz"}
+  decay: {default: 0.9, min: 0.2, max: 3, doc: "length of the boom in seconds"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.002, 1], [1, 0]], curve: exp, time_scale: "decay * 1.3"}
+  f: {type: sweep, from: "pitch * 2.8", to: pitch, time: 0.06}
+  body: {type: osc, wave: sine, freq: f, amp: env}
+  sat: {type: distort, in: "body * 2", drive_db: 6, shape: tube}
+  out: {type: gain, in: sat, db: -7}

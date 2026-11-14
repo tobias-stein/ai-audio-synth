@@ -1,0 +1,17 @@
+description: Wordless synthetic choir ("aah") from vowel-filtered ensemble saws. Ethereal and sacred textures.
+category: pad
+tail: 1.8
+duration: 3.21
+gate: 1.26
+params:
+  vowel: {default: 0, min: 0, max: 4, doc: "0=aah 1=eh 2=ee 3=oh 4=oo"}
+nodes:
+  env: {type: adsr, attack: 0.45, decay: 0.8, sustain: 0.85, release: 1.4}
+  vib: {type: lfo, rate: 5, amp: 0.005}
+  drift: {type: lfo, wave: smooth, rate: 0.25, amp: 0.25}
+  voices: {type: osc, wave: saw, freq: "freq * (1 + vib)", unison: 9, detune: 24, spread: 1}
+  breath: {type: noise, color: pink, stereo: true, amp: 0.25}
+  mouth: {type: formant, in: "voices + breath", vowel: "clamp(vowel + drift, 0, 4)", q: 6}
+  soft: {type: lowpass, in: mouth, cutoff: 5000}
+  wide: {type: chorus, in: "soft * env", rate: 0.4, depth_ms: 4, mix: 0.35}
+  out: {type: gain, in: wide, db: -3}

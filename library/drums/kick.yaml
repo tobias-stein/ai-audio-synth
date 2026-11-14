@@ -1,0 +1,17 @@
+description: Punchy electronic kick drum with a pitch drop and a click.
+category: drums
+duration: 0.6
+tail: 0.5
+params:
+  pitch: {default: 55, min: 30, max: 90, doc: "resting pitch in Hz"}
+  decay: {default: 0.28, min: 0.08, max: 1.5, doc: "length of the body in seconds"}
+  click: {default: 0.5, min: 0, max: 1, doc: "amount of attack click"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.001, 1], [1, 0]], curve: exp, time_scale: "decay * 1.4"}
+  f: {type: sweep, from: "pitch * 4.2", to: pitch, time: 0.085}
+  body: {type: osc, wave: sine, freq: f, amp: env}
+  click_env: {type: env, points: [[0, 1], [0.006, 0]], curve: exp}
+  tick: {type: noise, amp: "click_env * click"}
+  tick_f: {type: highpass, in: tick, cutoff: 1500}
+  sat: {type: distort, in: "body * 1.6 + tick_f * 0.5", drive_db: 5, shape: tanh}
+  out: {type: gain, in: sat, db: -6}

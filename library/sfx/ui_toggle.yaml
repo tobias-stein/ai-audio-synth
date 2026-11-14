@@ -1,0 +1,13 @@
+description: Switch sound. Pitch slides up when turning on, down when turning off.
+category: ui
+profile: ui
+duration: 0.14
+params:
+  "on": {default: 1, min: 0, max: 1, doc: "1 = switching on (rising), 0 = switching off (falling)"}
+  pitch: {default: 900, min: 300, max: 3000, doc: "center pitch in Hz"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.003, 1], [0.1, 0]], curve: exp}
+  ramp: {type: sweep, from: -1, to: 1, time: 0.07, curve: lin}
+  tone: {type: osc, wave: triangle, freq: "pitch * semi((on * 2 - 1) * 4 * ramp)", amp: env}
+  tick: {type: noise, amp: "env * env * env * 0.25"}
+  out: {type: highpass, in: "tone + tick", cutoff: 300}

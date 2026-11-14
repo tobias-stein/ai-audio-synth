@@ -1,0 +1,47 @@
+kind: score
+title: Menu theme
+description: Calm, friendly menu music - electric piano, soft pad, light percussion and a flute melody. Loops cleanly.
+tempo: 84
+key: F major
+swing: 0.25
+swing_unit: 0.25
+humanize: {timing_ms: 8, velocity: 0.07}
+tail: 4
+instruments:
+  keys: {patch: builtin:instruments/keys_epiano, gain_db: 0, sends: {room: -9}}
+  pad: {patch: builtin:instruments/pad_warm, params: {cutoff: 1200}, gain_db: -6, sends: {room: -9}}
+  bass: {patch: builtin:instruments/bass_sub, params: {warmth: 0.5}, gain_db: -1}
+  flute: {patch: builtin:instruments/flute_breath, gain_db: -3, pan: 0.15, sends: {room: -5}}
+  perc:
+    kit:
+      kick: {patch: builtin:drums/kick, params: {click: 0.2, decay: 0.25}, gain_db: -3}
+      rim: {patch: builtin:drums/rim, pan: -0.2}
+      shaker: {patch: builtin:drums/shaker, gain_db: -8, pan: 0.3}
+    sends: {room: -14}
+buses:
+  room: {fx: [{type: reverb, decay: 1.8, size: 1, damping: 5000, mix: 1}]}
+master: {lufs: -18}
+patterns:
+  keys_a: {chords: "Fmaj7:4 Dm7:4 Bbmaj7:4 C7sus4:4", octave: 3, style: strum, gate: 0.95, vel: 0.7}
+  pad_a: {chords: "F:4 Dm:4 Bb:4 C:4", octave: 4, vel: 0.5}
+  bass_a: {notes: "F2:1.5 F2:0.5 C3:1 F2:1 | D2:1.5 D2:0.5 A2:1 D2:1 | Bb1:1.5 Bb1:0.5 F2:1 Bb1:1 | C2:1.5 C2:0.5 G2:1 E2:1"}
+  groove:
+    drums:
+      kick:   "x.....x...x....."
+      rim:    "....x.......x..."
+      shaker: "x.xxx.xxx.xxx.xx"
+  flute_a:
+    notes:
+      - "A4:2 C5:1 A4:1"
+      - "F4:2 A4:2"
+      - "D5:2 C5:1 Bb4:1"
+      - "G4:3 _:1"
+      - "A4:1 C5:1 F5:2"
+      - "E5:1 D5:1 C5:2"
+      - "D5:1.5 C5:0.5 Bb4:1 A4:1"
+      - "G4:4"
+    vel: 0.75
+sections:
+  intro: {bars: 4, tracks: {keys: keys_a, pad: pad_a}}
+  main: {bars: 8, tracks: {keys: keys_a, pad: pad_a, bass: bass_a, perc: groove, flute: flute_a}}
+arrangement: [intro, main, main]

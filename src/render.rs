@@ -5,7 +5,7 @@ use crate::analysis::loudness;
 use crate::audio::Sig;
 use crate::dsp::resample::true_peak;
 use crate::error::{Error, Result};
-use crate::graph::{render_graph, Normalize, Patch, RenderOpts};
+use crate::graph::{render_graph, render_graph_probe, NodeLevel, Normalize, Patch, RenderOpts};
 use crate::util::{db_to_lin, lin_to_db, round_to};
 
 pub struct Asset {
@@ -14,6 +14,8 @@ pub struct Asset {
     /// Sample range to mark as a loop in the output file.
     pub loop_points: Option<(u32, u32)>,
     pub warnings: Vec<String>,
+    /// Per-node levels when probing was requested.
+    pub levels: Vec<NodeLevel>,
 }
 
 #[derive(Clone, Debug)]
@@ -26,6 +28,8 @@ pub struct AssetOpts {
     /// Force looping on (None = follow the patch).
     pub force_loop: bool,
     pub normalize: Option<Normalize>,
+    /// Record the level of every node (for `--probe`).
+    pub probe: bool,
 }
 
 pub fn quality_to_oversample(q: &str) -> Result<usize> {
@@ -37,17 +41,28 @@ pub fn quality_to_oversample(q: &str) -> Result<usize> {
     }
 }
 
-/// Fold the extra `xfade` samples at the end of `raw` into its start with an
-/// equal-power crossfade so that the result repeats without a seam.
+/// Fold the extra `xfade` samples at the end of `raw` into its start so that
+/// the result repeats without a seam. The crossfade law adapts to how similar
+/// the two overlapping parts are: linear for identical (periodic) material,
+/// equal-power for unrelated (noise-like) material, so level stays constant.
 pub fn make_seamless(raw: &Sig, loop_len: usize, xfade: usize) -> Sig {
+    let xfade = xfade.min(loop_len).min(raw.len().saturating_sub(loop_len));
+    let (mut hh, mut tt, mut ht) = (0.0, 0.0, 0.0);
+    for c in raw.chans() {
+        for i in 0..xfade {
+            let (h, t) = (c[i], c[loop_len + i]);
+            hh += h * h;
+            tt += t * t;
+            ht += h * t;
+        }
+    }
+    let rho = if hh > 0.0 && tt > 0.0 { (ht / (hh * tt).sqrt()).clamp(0.0, 1.0) } else { 0.0 };
     raw.map_channels(|_, x| {
         let mut out = x[..loop_len].to_vec();
-        for i in 0..xfade.min(loop_len) {
+        for i in 0..xfade {
             let p = (i as f64 + 0.5) / xfade as f64;
-            let fin = (p * std::f64::consts::FRAC_PI_2).sin();
-            let fout = (p * std::f64::consts::FRAC_PI_2).cos();
-            let tail = if loop_len + i < x.len() { x[loop_len + i] } else { 0.0 };
-            out[i] = x[i] * fin + tail * fout;
+            let g = 1.0 / (p * p + (1.0 - p) * (1.0 - p) + 2.0 * rho * p * (1.0 - p)).sqrt();
+            out[i] = x[i] * p * g + x[loop_len + i] * (1.0 - p) * g;
         }
         out
     })
@@ -82,10 +97,12 @@ pub fn apply_normalize(sig: &mut Sig, sr: u32, mode: &Normalize, warnings: &mut 
 
 pub fn render_patch(patch: &Patch, o: &AssetOpts) -> Result<Asset> {
     let mut warnings = Vec::new();
-    let dur = o.duration.or(patch.duration).ok_or_else(|| Error::invalid("patch has no 'duration'").at("duration").hint("add e.g. `duration: 1.5` (seconds) or pass --duration"))?;
+    let dur = o.duration.or(patch.duration_with(&o.params)?).ok_or_else(|| Error::invalid("patch has no 'duration'").at("duration").hint("add e.g. `duration: 1.5` (seconds) or pass --duration"))?;
     let looped = o.force_loop || patch.loop_crossfade.is_some();
     let xfade = if looped {
         let x = patch.loop_crossfade.filter(|x| *x >= 0.0).unwrap_or((dur * 0.25).min(1.0));
+        // a duration override keeps the patch's crossfade in proportion
+        let x = if o.duration.is_some() { x.min(dur * 0.4) } else { x };
         if x > dur * 0.5 {
             return Err(Error::invalid(format!("loop crossfade {x}s is more than half the duration {dur}s")).at("loop.crossfade").hint("shorten the crossfade or lengthen the duration"));
         }
@@ -97,7 +114,8 @@ pub fn render_patch(patch: &Patch, o: &AssetOpts) -> Result<Asset> {
     ro.params = o.params.clone();
     ro.duration = Some(dur + xfade);
     ro.gate = patch.gate;
-    let raw = render_graph(patch, &ro)?;
+    let mut levels = Vec::new();
+    let raw = render_graph_probe(patch, &ro, if o.probe { Some(&mut levels) } else { None })?;
     let n = (dur * o.sr as f64).round() as usize;
     let mut sig = if looped {
         make_seamless(&raw, n.min(raw.len()), (xfade * o.sr as f64).round() as usize)
@@ -124,7 +142,7 @@ pub fn render_patch(patch: &Patch, o: &AssetOpts) -> Result<Asset> {
         }
     }
     let loop_points = if looped { Some((0, sig.len().saturating_sub(1) as u32)) } else { None };
-    Ok(Asset { sig, sr: o.sr, loop_points, warnings })
+    Ok(Asset { sig, sr: o.sr, loop_points, warnings, levels })
 }
 
 /// Render one note of an instrument patch for the sequencer: gate plus tail,

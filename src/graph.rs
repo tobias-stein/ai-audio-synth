@@ -59,7 +59,8 @@ pub struct Patch {
     pub category: String,
     pub tags: Vec<String>,
     pub profile: Option<String>,
-    pub duration: Option<f64>,
+    /// Length in seconds; may be an expression of the patch parameters.
+    pub duration: Option<Expr>,
     pub gate: Option<f64>,
     pub tail: f64,
     pub seed: Option<u64>,
@@ -357,12 +358,20 @@ impl Patch {
             visit(i, &nodes, &index, &mut state, &mut order)?;
         }
 
-        let duration = get_f64(obj, "duration")?;
-        if let Some(d) = duration {
-            if !(d > 0.0 && d <= 600.0) {
-                return Err(Error::invalid(format!("duration {d} is out of range")).at("duration").hint("use a duration between 0 and 600 seconds"));
+        let duration = match obj.get("duration") {
+            None | Some(Value::Null) => None,
+            Some(v) => {
+                let e = value_to_expr(v).map_err(|e| e.at("duration"))?;
+                let mut ids = Vec::new();
+                e.idents(&mut ids);
+                for id in &ids {
+                    if !params.iter().any(|p| &p.name == id) && !CONSTANTS.iter().any(|c| c.0 == id) {
+                        return Err(Error::invalid(format!("duration can only use patch parameters, but refers to '{id}'")).at("duration").hint("use a number, or an expression of `params` such as \"0.5 + size\""));
+                    }
+                }
+                Some(e)
             }
-        }
+        };
         let gate = get_f64(obj, "gate")?;
         let tail = get_f64(obj, "tail")?.unwrap_or(0.5);
         if !(0.0..=60.0).contains(&tail) {
@@ -413,6 +422,31 @@ impl Patch {
             normalize,
         })
     }
+}
+
+impl Patch {
+    /// The patch duration for the given parameter overrides.
+    pub fn duration_with(&self, overrides: &[(String, f64)]) -> Result<Option<f64>> {
+        let Some(e) = &self.duration else { return Ok(None) };
+        let lookup = |n: &str| -> Option<Val> {
+            overrides.iter().find(|o| o.0 == n).map(|o| Val::C(o.1)).or_else(|| self.params.iter().find(|p| p.name == n).map(|p| Val::C(p.default)))
+        };
+        let d = e.eval(&lookup, &mut Rng::new(0)).map_err(|e| e.at("duration"))?.as_const().unwrap_or(0.0);
+        if !(d > 0.0 && d <= 600.0) {
+            return Err(Error::invalid(format!("duration {d} is out of range")).at("duration").hint("use a duration between 0 and 600 seconds"));
+        }
+        Ok(Some(d))
+    }
+}
+
+/// Level of one node's output, for diagnosing the balance between layers.
+#[derive(Clone, Debug)]
+pub struct NodeLevel {
+    pub name: String,
+    pub node_type: &'static str,
+    pub peak_db: f64,
+    pub rms_db: f64,
+    pub stereo: bool,
 }
 
 /// Options for one evaluation of a patch graph.
@@ -514,10 +548,15 @@ fn node_path(node: &str, param: &str) -> String {
 /// Evaluate the graph and return audio at the output sample rate, before any
 /// normalization, looping or fades.
 pub fn render_graph(patch: &Patch, o: &RenderOpts) -> Result<Sig> {
+    render_graph_probe(patch, o, None)
+}
+
+/// Like `render_graph`, optionally recording the level of every node.
+pub fn render_graph_probe(patch: &Patch, o: &RenderOpts, mut levels: Option<&mut Vec<NodeLevel>>) -> Result<Sig> {
     let os = o.oversample.max(1);
     let sr_int = o.sr as f64 * os as f64;
     let gate_dur_opt = o.gate.or(patch.gate);
-    let dur = match (o.duration, patch.duration, &o.input) {
+    let dur = match (o.duration, patch.duration_with(&o.params)?, &o.input) {
         (Some(d), _, _) => d,
         (None, _, Some(input)) => input.len() as f64 / o.sr as f64,
         (None, _, None) if o.gate.is_some() => o.gate.unwrap() + patch.tail,
@@ -608,6 +647,10 @@ pub fn render_graph(patch: &Patch, o: &RenderOpts) -> Result<Sig> {
             return Err(Error::new("render_error", format!("node '{}' ({}) produced non-finite samples", node.name, node.spec.name))
                 .at(format!("nodes.{}", node.name))
                 .hint("a parameter is probably out of its sensible range: check feedback values (< 1), filter cutoffs and q (> 0)"));
+        }
+        if let Some(lv) = levels.as_mut() {
+            let ms = sig.chans().iter().map(|c| c.iter().map(|v| v * v).sum::<f64>()).sum::<f64>() / (n * sig.channels()) as f64;
+            lv.push(NodeLevel { name: node.name.clone(), node_type: node.spec.name, peak_db: crate::util::lin_to_db(sig.peak()), rms_db: crate::util::lin_to_db(ms.sqrt()), stereo: sig.is_stereo() });
         }
         env.insert(node.name.clone(), Val::S(Rc::new(sig)));
     }

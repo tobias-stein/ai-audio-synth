@@ -1,0 +1,21 @@
+description: Crisp snare drum - tuned shell tone plus noisy snare wires.
+category: drums
+duration: 0.5
+tail: 0.4
+params:
+  pitch: {default: 190, min: 120, max: 320, doc: "shell pitch in Hz"}
+  snappy: {default: 0.6, min: 0, max: 1, doc: "amount of snare-wire noise"}
+  decay: {default: 0.18, min: 0.05, max: 0.6, doc: "length in seconds"}
+nodes:
+  tone_env: {type: env, points: [[0, 0], [0.0008, 1], [0.11, 0]], curve: exp}
+  bend: {type: sweep, from: 1.5, to: 1, time: 0.03}
+  t1: {type: osc, wave: sine, freq: "pitch * bend * rand(0.98, 1.02)", amp: tone_env}
+  t2: {type: osc, wave: sine, freq: "pitch * 1.78 * bend", amp: "tone_env * 0.5"}
+  noise_env: {type: env, points: [[0, 0], [0.0008, 1], [1, 0]], curve: exp, time_scale: "decay * 1.5"}
+  wires_src: {type: noise, amp: noise_env}
+  wires_hp: {type: highpass, in: wires_src, cutoff: 1400}
+  wires_lp: {type: lowpass, in: wires_hp, cutoff: 8500}
+  wires: {type: peak, in: wires_lp, freq: 3500, gain_db: 4, q: 0.8}
+  sum: {type: expr, expr: "(t1 + t2) * 1.2 + wires * (0.5 + 0.9 * snappy)"}
+  sat: {type: distort, in: sum, drive_db: 4, shape: tanh}
+  out: {type: gain, in: sat, db: -6}

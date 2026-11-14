@@ -1,0 +1,18 @@
+description: Tension riser that builds to a peak and stops - use before a drop, reveal or jump scare.
+category: motion
+profile: whoosh
+duration: "length + 1.2"
+params:
+  length: {default: 3, min: 0.5, max: 12, doc: "seconds the build takes"}
+  pitch: {default: 110, min: 40, max: 400, doc: "starting pitch in Hz; it rises two octaves"}
+nodes:
+  prog: {type: expr, expr: "clamp(t / length, 0, 1)"}
+  env: {type: env, points: [[0, 0], [0.92, 1], [0.985, 1], [1, 0]], curve: lin, time_scale: "length + 0.12"}
+  f: {type: expr, expr: "pitch * semi(24 * prog * prog)"}
+  saws: {type: osc, wave: saw, freq: f, unison: 7, detune: "40", spread: 0.9}
+  tone: {type: lowpass, in: saws, cutoff: "300 + 9000 * prog * prog", q: 2}
+  hiss_src: {type: noise, color: white, stereo: true}
+  hiss: {type: bandpass, in: hiss_src, cutoff: "500 + 5000 * prog", q: 1.5}
+  trem: {type: lfo, rate: "3 + 22 * prog * prog", unipolar: true}
+  sum: {type: expr, expr: "(tone * 0.5 + hiss * 0.7 * prog) * (1 - 0.5 * trem * prog) * env * (0.15 + 0.85 * prog)"}
+  out: {type: reverb, in: sum, decay: 1.0, mix: 0.2}

@@ -1,0 +1,23 @@
+description: Looping rain ambience - steady hiss with individual drops.
+category: ambience
+profile: ambience-loop
+duration: 12
+loop: {crossfade: 2.5}
+normalize: {lufs: -26}
+params:
+  intensity: {default: 0.5, min: 0, max: 1, doc: "0 = drizzle, 1 = downpour"}
+nodes:
+  hiss_src: {type: noise, stereo: true}
+  hiss_hp: {type: highpass, in: hiss_src, cutoff: 900}
+  hiss: {type: lowpass, in: hiss_hp, cutoff: "4500 + 3000 * intensity"}
+  drops_l_src: {type: dust, density: "150 + 900 * intensity"}
+  drops_r_src: {type: dust, density: "150 + 900 * intensity"}
+  drops_l: {type: bandpass, in: drops_l_src, cutoff: 2800, q: 1.2}
+  drops_r: {type: bandpass, in: drops_r_src, cutoff: 3400, q: 1.2}
+  big_src: {type: dust, density: "6 + 25 * intensity"}
+  big: {type: modal, in: big_src, modes: [[1, 1, 1], [2.3, 0.4, 0.5]], freq: 900, decay: 0.03, damping: 1}
+  rumble_src: {type: noise, color: brown, stereo: true}
+  rumble: {type: lowpass, in: rumble_src, cutoff: 300}
+  left: {type: pan, in: "drops_l + big * 0.5", pos: -0.7}
+  right: {type: pan, in: drops_r, pos: 0.7}
+  out: {type: expr, expr: "hiss * (0.08 + 0.2 * intensity) + (left + right) * 0.6 + rumble * 0.5 * intensity"}

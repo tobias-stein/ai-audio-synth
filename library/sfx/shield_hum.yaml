@@ -1,0 +1,18 @@
+description: Looping energy field - shields, force fields, portals, charged objects.
+category: scifi
+profile: sfx-loop
+duration: 4
+loop: {crossfade: 1}
+params:
+  pitch: {default: 62, min: 30, max: 200, doc: "pitch of the hum in Hz"}
+  shimmer: {default: 0.5, min: 0, max: 1, doc: "amount of bright crackling energy on top"}
+nodes:
+  wob: {type: lfo, wave: smooth, rate: 0.7}
+  hum_src: {type: osc, wave: saw, freq: "pitch * (1 + 0.004 * wob)", unison: 3, detune: 14, spread: 0.6}
+  fifth: {type: osc, wave: pulse, pw: 0.35, freq: "pitch * 1.5", amp: 0.4}
+  hum: {type: lowpass, in: "hum_src + fifth", cutoff: "500 + 250 * wob", q: 1.5}
+  trem: {type: lfo, wave: sine, rate: 8.5, unipolar: true}
+  fizz_src: {type: noise, stereo: true}
+  fizz: {type: bandpass, in: fizz_src, cutoff: "3200 + 900 * wob", q: 3}
+  sum: {type: expr, expr: "hum * 0.6 + fizz * shimmer * (0.4 + 0.6 * trem)"}
+  out: {type: phaser, in: sum, rate: 0.25, min_freq: 300, max_freq: 4000, feedback: 0.5, mix: 0.6}

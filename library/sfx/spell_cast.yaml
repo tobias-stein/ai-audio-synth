@@ -1,0 +1,26 @@
+description: Magic spell - an inward rush of energy followed by a bright crystalline burst.
+category: magic
+profile: whoosh
+duration: 2.6
+params:
+  pitch: {default: 880, min: 300, max: 2000, doc: "pitch of the burst in Hz"}
+  charge: {default: 0.55, min: 0.15, max: 1.5, doc: "seconds of build-up before the burst"}
+nodes:
+  # build-up
+  up: {type: expr, expr: "clamp(t / charge, 0, 1)"}
+  rush_env: {type: expr, expr: "up * up * lt(t, charge)"}
+  rush_src: {type: noise, color: pink, stereo: true}
+  rush: {type: bandpass, in: rush_src, cutoff: "400 + 6000 * up * up", q: 2.5}
+  glide: {type: osc, wave: sine, freq: "pitch * 0.25 * semi(24 * up)", pm: "glide_mod * 2"}
+  glide_mod: {type: osc, wave: sine, freq: "pitch * 0.25 * semi(24 * up) * 2.01"}
+  build: {type: expr, expr: "(rush * 5 + glide * 0.4) * rush_env"}
+  # burst
+  hit: {type: impulse, at: charge}
+  bell1: {type: modal, in: hit, modes: glass, freq: pitch, decay: 1.4, damping: 0.3}
+  bell2: {type: modal, in: hit, modes: bowl, freq: "pitch * 1.5 * rand(0.99, 1.01)", decay: 1.1, damping: 0.4, amp: 0.7}
+  spark_env: {type: expr, expr: "gt(t, charge) * exp(-(t - charge) * 5)"}
+  spark_src: {type: dust, density: "300 * spark_env"}
+  spark: {type: modal, in: spark_src, modes: glass, freq: "pitch * 3.01", decay: 0.15, damping: 0.2, amp: 0.25}
+  burst: {type: chorus, in: "bell1 + bell2 + spark", rate: 1.2, depth_ms: 4, mix: 0.4}
+  sum: {type: mix, inputs: [build, burst], gains_db: [-4, 0]}
+  out: {type: reverb, in: sum, decay: 1.8, size: 1.5, mix: 0.3, predelay_ms: 10}

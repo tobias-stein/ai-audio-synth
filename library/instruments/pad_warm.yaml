@@ -1,0 +1,16 @@
+description: Soft, slow analog pad. The default bed for calm, emotional and ambient music.
+category: pad
+tail: 2.0
+duration: 3.29
+gate: 1.14
+params:
+  cutoff: {default: 1600, min: 200, max: 10000, doc: "filter cutoff in Hz"}
+  attack: {default: 0.6, min: 0.01, max: 5, doc: "fade-in time in seconds"}
+nodes:
+  env: {type: adsr, attack: attack, decay: 1, sustain: 0.8, release: 1.6}
+  drift: {type: lfo, wave: smooth, rate: 0.2}
+  saws: {type: osc, wave: saw, freq: freq, unison: 7, detune: 18, spread: 1}
+  sub: {type: osc, wave: triangle, freq: "freq * 0.5", amp: 0.3}
+  filt: {type: lowpass, in: "saws + sub", cutoff: "cutoff * (0.7 + 0.3 * drift) * (0.6 + 0.4 * vel)", q: 0.8, slope: "24"}
+  wide: {type: chorus, in: "filt * env", rate: 0.8, depth_ms: 4, mix: 0.3}
+  out: {type: gain, in: wide, db: -10}

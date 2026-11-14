@@ -1,0 +1,15 @@
+description: Looping quiet interior background - air handling, distant hum. Keeps silence from sounding dead.
+category: ambience
+profile: ambience-loop
+duration: 10
+loop: {crossfade: 2}
+normalize: {lufs: -34}
+params:
+  hum: {default: 0.3, min: 0, max: 1, doc: "amount of electrical mains hum"}
+nodes:
+  air_src: {type: noise, color: brown, stereo: true}
+  air: {type: bandpass, in: air_src, cutoff: 220, q: 0.5}
+  hiss_src: {type: noise, color: pink, stereo: true}
+  hiss: {type: lowpass, in: hiss_src, cutoff: 5000}
+  mains: {type: additive, freq: 60, partials: [1, 0.5, 0.25, 0.1]}
+  out: {type: expr, expr: "air + hiss * 0.08 + mains * 0.03 * hum"}

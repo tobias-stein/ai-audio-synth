@@ -1,0 +1,12 @@
+description: Ride cymbal - a defined ping with a soft wash. For steady patterns.
+category: drums
+duration: 1.2
+tail: 1.1
+params:
+  decay: {default: 0.7, min: 0.2, max: 3, doc: "length in seconds"}
+nodes:
+  env: {type: env, points: [[0, 0], [0.001, 1], [1, 0]], curve: exp, time_scale: "decay * 1.5"}
+  ping: {type: modal, modes: [[1, 1, 1], [1.34, 0.6, 0.8], [1.83, 0.5, 0.7], [2.41, 0.4, 0.6], [3.19, 0.3, 0.5]], freq: 3300, decay: decay, damping: 0.3}
+  wash_src: {type: noise}
+  wash: {type: highpass, in: wash_src, cutoff: 6500, slope: "24"}
+  out: {type: gain, in: "ping * 0.5 + wash * env * 0.06", db: -6}

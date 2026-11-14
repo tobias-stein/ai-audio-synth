@@ -1,0 +1,10 @@
+description: 8-bit console kick - a fast triangle pitch drop.
+category: drums
+duration: 0.2
+tail: 0.15
+nodes:
+  env: {type: env, points: [[0, 1], [0.12, 0]], curve: lin}
+  f: {type: sweep, from: 320, to: 45, time: 0.09}
+  tri: {type: osc, wave: triangle, freq: f}
+  steps: {type: bitcrush, in: tri, bits: 4, rate: 48000}
+  out: {type: gain, in: "steps * env", db: -5}

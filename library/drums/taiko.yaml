@@ -1,0 +1,18 @@
+description: Huge cinematic drum (taiko / war drum) from a membrane model. The backbone of epic and battle percussion.
+category: drums
+duration: 1.6
+tail: 1.5
+params:
+  pitch: {default: 72, min: 40, max: 160, doc: "pitch of the drum head in Hz"}
+  decay: {default: 0.9, min: 0.2, max: 3, doc: "ring time in seconds"}
+nodes:
+  stick_env: {type: env, points: [[0, 1], [0.005, 0]], curve: exp}
+  stick: {type: noise, color: pink, amp: "stick_env * 3"}
+  stick_f: {type: lowpass, in: stick, cutoff: "1500 + 4000 * vel"}
+  head: {type: modal, in: stick_f, modes: membrane, freq: "pitch * rand(0.98, 1.02)", decay: decay, damping: 1.3}
+  thump_env: {type: env, points: [[0, 0], [0.002, 1], [1, 0]], curve: exp, time_scale: "decay * 0.8"}
+  bend: {type: sweep, from: 1.5, to: 1, time: 0.05}
+  thump: {type: osc, wave: sine, freq: "pitch * bend", amp: thump_env}
+  slap: {type: bandpass, in: stick, cutoff: 2500, q: 0.7}
+  sat: {type: distort, in: "head * 0.12 + thump * 0.55 + slap * 0.25", drive_db: 5, shape: tube}
+  out: {type: gain, in: sat, db: -6}

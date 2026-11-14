@@ -1,0 +1,10 @@
+description: 8-bit console hi-hat - a very short tick of high noise.
+category: drums
+duration: 0.1
+tail: 0.06
+nodes:
+  env: {type: env, points: [[0, 1], [0.035, 0]], curve: exp}
+  hiss: {type: noise}
+  crunchy: {type: bitcrush, in: hiss, bits: 2, rate: 22000}
+  hp: {type: highpass, in: crunchy, cutoff: 4000}
+  out: {type: gain, in: "hp * env", db: -14}
