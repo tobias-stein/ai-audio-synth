@@ -1,0 +1,1 @@
+cargo install --path ~/Projects/tobias-stein/ai-audio-synth
